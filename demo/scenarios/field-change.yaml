@@ -1,0 +1,21 @@
+id: field-change
+title: Add customer segment to request views
+stage: future-card
+primary: false
+business_request: >
+  Add customer segment to trial request creation, detail, and list views
+  so the team can quickly separate SMB, mid-market, and enterprise requests.
+why_it_matters:
+  - Shows a bounded schema and UI change
+  - Useful as a lower-risk backup scenario
+expected_touched_areas:
+  - request shape
+  - list and detail UI
+  - validation rules
+  - seed data
+proof_expectations:
+  - Field appears in list and detail later
+  - Validation is documented
+  - Seed data covers multiple segments
+demo_risk: low
+implementation_status: future_only

@@ -1,0 +1,20 @@
+id: bugfix
+title: Fix active dashboard count
+stage: future-card
+primary: false
+business_request: >
+  Dashboard currently counts rejected requests as active.
+  Fix the counting logic so active totals only reflect open, actionable requests.
+why_it_matters:
+  - Shows issue discovery, correction, and verification
+  - Creates a clean before-and-after proof story
+expected_touched_areas:
+  - dashboard aggregation logic
+  - backend projection logic
+  - smoke or regression checks
+proof_expectations:
+  - Bug is reproducible from seed data later
+  - Corrected counts are verified explicitly
+  - Proof readout explains the regression check
+demo_risk: medium-low
+implementation_status: future_only

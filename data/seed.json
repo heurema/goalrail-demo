@@ -1,0 +1,144 @@
+{
+  "trialRequests": [
+    {
+      "id": "tr_001",
+      "companyName": "Northstar Atlas",
+      "contactName": "Avery Hale",
+      "email": "avery.hale@northstar-atlas.example.com",
+      "segment": "mid_market",
+      "status": "new",
+      "owner": null,
+      "notes": [
+        "Asked for a shared onboarding checklist.",
+        "Wants a short implementation estimate before kickoff."
+      ],
+      "createdAt": "2026-04-08T09:15:00.000Z"
+    },
+    {
+      "id": "tr_002",
+      "companyName": "Blueforge Cloud",
+      "contactName": "Mina Sol",
+      "email": "mina.sol@blueforge-cloud.example.com",
+      "segment": "enterprise",
+      "status": "qualified",
+      "owner": "Ilya Orlov",
+      "notes": [
+        "Security questionnaire sent.",
+        "Interested in guided onboarding for two teams later."
+      ],
+      "createdAt": "2026-04-07T12:40:00.000Z"
+    },
+    {
+      "id": "tr_003",
+      "companyName": "Lattice Harbor",
+      "contactName": "Jonah Reed",
+      "email": "jonah.reed@lattice-harbor.example.com",
+      "segment": "smb",
+      "status": "approved",
+      "owner": "Maya Chen",
+      "notes": [
+        "Pilot window starts next Monday.",
+        "Prefers async status updates."
+      ],
+      "createdAt": "2026-04-03T08:20:00.000Z"
+    },
+    {
+      "id": "tr_004",
+      "companyName": "Signal Orchard",
+      "contactName": "Rin Patel",
+      "email": "rin.patel@signal-orchard.example.com",
+      "segment": "mid_market",
+      "status": "rejected",
+      "owner": "Tara Wynn",
+      "notes": [
+        "No active engineering sponsor.",
+        "Asked to revisit in one quarter."
+      ],
+      "createdAt": "2026-04-01T15:05:00.000Z"
+    },
+    {
+      "id": "tr_005",
+      "companyName": "Vertex Lantern",
+      "contactName": "Cleo Hart",
+      "email": "cleo.hart@vertex-lantern.example.com",
+      "segment": "enterprise",
+      "status": "qualified",
+      "owner": "Ilya Orlov",
+      "notes": [
+        "Needs a compliance-friendly demo path.",
+        "Asks about proof artifacts early."
+      ],
+      "createdAt": "2026-04-10T11:55:00.000Z"
+    },
+    {
+      "id": "tr_006",
+      "companyName": "Copper Finch",
+      "contactName": "Noah Vale",
+      "email": "noah.vale@copper-finch.example.com",
+      "segment": "smb",
+      "status": "new",
+      "owner": null,
+      "notes": [
+        "Inbound from founder network intro.",
+        "Interested in one repo, one case pilot."
+      ],
+      "createdAt": "2026-04-11T10:10:00.000Z"
+    },
+    {
+      "id": "tr_007",
+      "companyName": "Prism Junction",
+      "contactName": "Lena Frost",
+      "email": "lena.frost@prism-junction.example.com",
+      "segment": "mid_market",
+      "status": "approved",
+      "owner": "Maya Chen",
+      "notes": [
+        "Completed pilot scoping.",
+        "Wants proof-oriented readout for leadership."
+      ],
+      "createdAt": "2026-03-30T13:35:00.000Z"
+    },
+    {
+      "id": "tr_008",
+      "companyName": "Quartz Meadow",
+      "contactName": "Owen March",
+      "email": "owen.march@quartz-meadow.example.com",
+      "segment": "smb",
+      "status": "rejected",
+      "owner": "Tara Wynn",
+      "notes": [
+        "Only one individual buyer, no team sponsor.",
+        "No repo identified for a pilot case."
+      ],
+      "createdAt": "2026-03-28T17:00:00.000Z"
+    },
+    {
+      "id": "tr_009",
+      "companyName": "Harbor Relay",
+      "contactName": "Milo Shaw",
+      "email": "milo.shaw@harbor-relay.example.com",
+      "segment": "enterprise",
+      "status": "qualified",
+      "owner": "Ilya Orlov",
+      "notes": [
+        "Wants a live walkthrough with fake production-like data.",
+        "May expand to a second repo later."
+      ],
+      "createdAt": "2026-04-09T14:25:00.000Z"
+    },
+    {
+      "id": "tr_010",
+      "companyName": "Cinder Loop",
+      "contactName": "Piper Lane",
+      "email": "piper.lane@cinder-loop.example.com",
+      "segment": "mid_market",
+      "status": "new",
+      "owner": null,
+      "notes": [
+        "Needs a clearer example of trial request review flow.",
+        "Asked for a deterministic reset between demos."
+      ],
+      "createdAt": "2026-04-12T16:45:00.000Z"
+    }
+  ]
+}

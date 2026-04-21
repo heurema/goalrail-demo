@@ -1,0 +1,24 @@
+id: workflow-change
+title: Manual review before approval
+stage: future-implementation
+primary: true
+business_request: >
+  Before a trial request can be approved, we need a manual review step.
+  The reviewer must assign an owner and provide a decision reason.
+  The dashboard should reflect the new status, and the audit log should show who made the decision.
+why_it_matters:
+  - Easy for business stakeholders to understand
+  - Shows a workflow change across backend, frontend, validation, and proof
+  - Supports the live-demo story from request to proof
+expected_touched_areas:
+  - status model
+  - backend validation
+  - request detail workflow
+  - dashboard counters
+  - audit log recording
+proof_expectations:
+  - Contract and task-plan artifacts exist
+  - Happy-path smoke check exists later
+  - UI later shows the new status and audit evidence
+demo_risk: medium
+implementation_status: planned

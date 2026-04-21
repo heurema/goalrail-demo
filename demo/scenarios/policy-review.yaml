@@ -1,0 +1,20 @@
+id: policy-review
+title: Stricter review for enterprise trials
+stage: future-card
+primary: false
+business_request: >
+  High-value enterprise trial requests require stricter review before approval,
+  including deeper review depth and stronger proof expectations.
+why_it_matters:
+  - Shows policy and review-depth discussion, not only feature work
+  - Fits future guided replay storytelling
+expected_touched_areas:
+  - policy profile notes
+  - review-depth rules
+  - proof expectations
+proof_expectations:
+  - Policy discussion is explicit
+  - Contract later captures stricter review expectations
+  - Initial version may remain docs and proof only
+demo_risk: medium-high
+implementation_status: future_only
