@@ -114,3 +114,11 @@ Recommended verification flow:
 npm run reset
 npm run smoke
 ```
+
+## Demo artifacts
+
+- primary scenario: `workflow-change`
+- proof pack: `demo/proof-packs/workflow-change/`
+- show script: `docs/demo/DEMO_SHOW_SCRIPT.md`
+- dry-run checklist: `docs/demo/DEMO_DRY_RUN_CHECKLIST.md`
+- Russian presenter notes: `docs/demo/DEMO_PRESENTER_NOTES_RU.md`

@@ -2,6 +2,7 @@ node_modules/
 .DS_Store
 npm-debug.log*
 apps/*/dist/
+.playwright-cli/
 
 data/runtime/*.json
 !data/runtime/.gitkeep

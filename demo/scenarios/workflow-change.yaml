@@ -22,3 +22,5 @@ proof_expectations:
   - UI later shows the new status and audit evidence
 demo_risk: medium
 implementation_status: planned
+proof_pack_path: demo/proof-packs/workflow-change/
+show_script_path: docs/demo/DEMO_SHOW_SCRIPT.md
