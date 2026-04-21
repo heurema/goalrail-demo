@@ -1,4 +1,8 @@
-import type { FastifyInstance } from "fastify";
+import { constants } from "node:fs";
+import { access, readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { FastifyInstance, FastifyReply } from "fastify";
 
 import { NotFoundError, ValidationError } from "./errors.js";
 import {
@@ -10,6 +14,57 @@ import {
   updateTrialRequestStatus
 } from "./data-store.js";
 import type { TrialRequestStatus } from "./types.js";
+
+const webDistRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "web",
+  "dist"
+);
+
+const staticMimeTypes: Record<string, string> = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2"
+};
+
+const tryReadStaticAsset = async (
+  requestPath: string
+): Promise<{ body: Buffer; contentType: string } | null> => {
+  const normalizedPath = requestPath === "/" ? "/index.html" : requestPath;
+  const relativePath = normalizedPath.replace(/^\/+/, "");
+  const assetPath = path.resolve(webDistRoot, relativePath);
+
+  if (!assetPath.startsWith(webDistRoot)) {
+    return null;
+  }
+
+  try {
+    await access(assetPath, constants.R_OK);
+  } catch {
+    return null;
+  }
+
+  const extension = path.extname(assetPath).toLowerCase();
+  return {
+    body: await readFile(assetPath),
+    contentType: staticMimeTypes[extension] ?? "application/octet-stream"
+  };
+};
+
+const sendWebIndex = async (reply: FastifyReply) => {
+  const indexPath = path.join(webDistRoot, "index.html");
+  const body = await readFile(indexPath);
+  return reply.type("text/html; charset=utf-8").send(body);
+};
 
 type StatusPatchBody = {
   status?: string;
@@ -107,5 +162,28 @@ export const registerRoutes = (app: FastifyInstance): void => {
     }
 
     return { items };
+  });
+
+  app.get("/", async (_request, reply) => sendWebIndex(reply));
+
+  app.get<{ Params: { "*": string } }>("/assets/*", async (request, reply) => {
+    const asset = await tryReadStaticAsset(`/assets/${request.params["*"]}`);
+
+    if (!asset) {
+      throw new NotFoundError("Asset not found");
+    }
+
+    return reply.type(asset.contentType).send(asset.body);
+  });
+
+  app.get("/*", async (request, reply) => {
+    const requestPath = request.url.split("?")[0];
+    const asset = await tryReadStaticAsset(requestPath);
+
+    if (asset) {
+      return reply.type(asset.contentType).send(asset.body);
+    }
+
+    return sendWebIndex(reply);
   });
 };
