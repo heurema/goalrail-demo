@@ -55,7 +55,6 @@ type TrialPresentation = {
   source: string;
   requesterTitle: string;
   trialLength: string;
-  defaultReason: string;
 };
 
 const statusOptions: TrialRequestStatus[] = [
@@ -121,10 +120,29 @@ const formatCurrency = (value: number): string =>
   }).format(value);
 
 const formatAuditTime = (value: string): string =>
-  new Date(value).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  {
+    const timestamp = new Date(value);
+    const timeLabel = timestamp.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    const now = new Date();
+    const isToday =
+      timestamp.getDate() === now.getDate() &&
+      timestamp.getMonth() === now.getMonth() &&
+      timestamp.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      return `Today · ${timeLabel}`;
+    }
+
+    const dateLabel = timestamp.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short"
+    });
+
+    return `${dateLabel} · ${timeLabel}`;
+  };
 
 const formatAge = (value: string): string => {
   const createdAt = new Date(value).getTime();
@@ -201,15 +219,7 @@ const getTrialPresentation = (item: TrialRequest): TrialPresentation => {
       region: "Europe · eu-central-1",
       source: getSource(item),
       requesterTitle: "Operations lead",
-      trialLength: "14 days",
-      defaultReason:
-        item.status === "approved"
-          ? "Approved in the current baseline flow. No second reviewer was required."
-          : item.status === "rejected"
-            ? "Outside the current pilot scope at this stage."
-            : item.status === "qualified"
-              ? "Strong ICP fit. Verified domain and core onboarding requirements."
-              : "Initial intake complete. Waiting on qualification."
+      trialLength: "14 days"
     };
   }
 
@@ -222,15 +232,7 @@ const getTrialPresentation = (item: TrialRequest): TrialPresentation => {
       region: "North America · us-east-1",
       source: getSource(item),
       requesterTitle: "VP Platform",
-      trialLength: "30 days",
-      defaultReason:
-        item.status === "approved"
-          ? "Approved directly per the current baseline policy for enterprise onboarding."
-          : item.status === "rejected"
-            ? "High-touch scope but no active pilot sponsor yet."
-            : item.status === "qualified"
-              ? "Strong ICP fit. Enterprise onboarding requirements are already understood."
-              : "Initial intake captured. Awaiting qualification review."
+      trialLength: "30 days"
     };
   }
 
@@ -242,16 +244,53 @@ const getTrialPresentation = (item: TrialRequest): TrialPresentation => {
     region: "North America · us-east-2",
     source: getSource(item),
     requesterTitle: "Director of Operations",
-    trialLength: "30 days",
-    defaultReason:
-      item.status === "approved"
-        ? "Approved in the current baseline flow. Provisioning can happen immediately."
-        : item.status === "rejected"
-          ? "Not enough urgency for a pilot this month."
-          : item.status === "qualified"
-            ? "Strong ICP fit. Verified domain and baseline requirements. Approving directly per current policy."
-            : "Initial intake complete. Waiting on qualification."
+    trialLength: "30 days"
   };
+};
+
+const getDefaultReasonForStatus = (
+  item: TrialRequest,
+  targetStatus: TrialRequestStatus
+): string => {
+  if (item.segment === "smb") {
+    switch (targetStatus) {
+      case "approved":
+        return "Approved in the current baseline flow. No second reviewer was required.";
+      case "rejected":
+        return "Outside the current pilot scope at this stage.";
+      case "qualified":
+        return "Strong ICP fit. Verified domain and core onboarding requirements.";
+      case "new":
+      default:
+        return "Initial intake complete. Waiting on qualification.";
+    }
+  }
+
+  if (item.segment === "enterprise") {
+    switch (targetStatus) {
+      case "approved":
+        return "Approved directly per the current baseline policy for enterprise onboarding.";
+      case "rejected":
+        return "High-touch scope but no active pilot sponsor yet.";
+      case "qualified":
+        return "Strong ICP fit. Enterprise onboarding requirements are already understood.";
+      case "new":
+      default:
+        return "Initial intake captured. Awaiting qualification review.";
+    }
+  }
+
+  switch (targetStatus) {
+    case "approved":
+      return "Approved in the current baseline flow. Provisioning can happen immediately.";
+    case "rejected":
+      return "Not enough urgency for a pilot this month.";
+    case "qualified":
+      return "Strong ICP fit. Verified domain and baseline requirements. Ready for the next review step.";
+    case "new":
+    default:
+      return "Initial intake complete. Waiting on qualification.";
+  }
 };
 
 const getPrimaryActionLabel = (value: TrialRequestStatus): string => {
@@ -440,6 +479,7 @@ export default function App() {
   const [nextStatus, setNextStatus] = useState<TrialRequestStatus>("new");
   const [trialLength, setTrialLength] = useState("30 days");
   const [reason, setReason] = useState("");
+  const [reasonDirty, setReasonDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -529,10 +569,12 @@ export default function App() {
         setDetailLoading(true);
         const detail = await fetchTrialRequest(selectedId);
         const presentation = getTrialPresentation(detail.item);
+        const suggestedStatus = getSuggestedNextStatus(detail.item.status);
         setSelectedItem(detail.item);
-        setNextStatus(getSuggestedNextStatus(detail.item.status));
+        setNextStatus(suggestedStatus);
         setTrialLength(presentation.trialLength);
-        setReason(presentation.defaultReason);
+        setReason(getDefaultReasonForStatus(detail.item, suggestedStatus));
+        setReasonDirty(false);
       } catch (error) {
         setFeedback({
           kind: "error",
@@ -582,21 +624,30 @@ export default function App() {
     }
 
     try {
+      const currentDefaultReason = getDefaultReasonForStatus(selectedItem, nextStatus);
+      const submissionReason =
+        targetStatus !== nextStatus &&
+        (!reasonDirty || reason.trim() === currentDefaultReason.trim())
+          ? getDefaultReasonForStatus(selectedItem, targetStatus)
+          : reason;
+
       setSubmitting(true);
       await updateTrialRequestStatus({
         id: selectedItem.id,
         status: targetStatus,
-        reason
+        reason: submissionReason
       });
 
       const refreshedId = await refreshListAndAudit(selectedItem.id);
       if (refreshedId) {
         const detail = await fetchTrialRequest(refreshedId);
         const presentation = getTrialPresentation(detail.item);
+        const suggestedStatus = getSuggestedNextStatus(detail.item.status);
         setSelectedItem(detail.item);
-        setNextStatus(getSuggestedNextStatus(detail.item.status));
+        setNextStatus(suggestedStatus);
         setTrialLength(presentation.trialLength);
-        setReason(presentation.defaultReason);
+        setReason(getDefaultReasonForStatus(detail.item, suggestedStatus));
+        setReasonDirty(false);
       }
 
       setFeedback({
@@ -904,9 +955,24 @@ export default function App() {
                             id="decision-select"
                             className="select"
                             value={nextStatus}
-                            onChange={(event) =>
-                              setNextStatus(event.target.value as TrialRequestStatus)
-                            }
+                            onChange={(event) => {
+                              const updatedStatus = event.target.value as TrialRequestStatus;
+                              const currentDefault = selectedItem
+                                ? getDefaultReasonForStatus(selectedItem, nextStatus)
+                                : "";
+
+                              setNextStatus(updatedStatus);
+
+                              if (
+                                selectedItem &&
+                                (!reasonDirty || reason.trim() === currentDefault.trim())
+                              ) {
+                                setReason(
+                                  getDefaultReasonForStatus(selectedItem, updatedStatus)
+                                );
+                                setReasonDirty(false);
+                              }
+                            }}
                           >
                             {statusOptions.map((status) => (
                               <option key={status} value={status}>
@@ -937,7 +1003,10 @@ export default function App() {
                           id="internal-reason"
                           placeholder="Optional note…"
                           value={reason}
-                          onChange={(event) => setReason(event.target.value)}
+                          onChange={(event) => {
+                            setReason(event.target.value);
+                            setReasonDirty(true);
+                          }}
                         />
                       </div>
 
