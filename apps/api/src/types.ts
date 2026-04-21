@@ -15,16 +15,10 @@ export interface TrialRequest {
 export interface AuditEvent {
   id: string;
   requestId: string;
-  action: "status_changed";
   actor: string;
+  action: "status_changed";
   fromStatus: TrialRequestStatus;
   toStatus: TrialRequestStatus;
   reason?: string;
   createdAt: string;
 }
-
-export type ScenarioId =
-  | "workflow-change"
-  | "field-change"
-  | "bugfix"
-  | "policy-review";

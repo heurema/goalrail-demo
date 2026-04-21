@@ -14,19 +14,19 @@ This repo exists to support:
 
 ## Current phase
 
-Current phase: **Phase 1 skeleton only**
+Current phase: **Phase 3 baseline UI**
 
 What exists now:
 - npm workspace structure
-- placeholder API and Web app folders
+- minimal file-backed backend API
+- minimal baseline Web UI
 - shared demo types
 - fake seed data
 - scenario manifests
 - deterministic reset and smoke scripts
 
 What does **not** exist yet:
-- real API behavior
-- real UI behavior
+- real frontend behavior
 - database
 - auth
 - external integrations
@@ -36,9 +36,18 @@ What does **not** exist yet:
 ```bash
 npm install
 npm run reset
+npm run typecheck
+npm run api:build
+npm run web:build
 npm run smoke
 npm run dev
 ```
+
+Default API URL:
+- `http://127.0.0.1:4311`
+
+Default Web URL:
+- `http://127.0.0.1:5173`
 
 ## Repo intent
 
@@ -51,13 +60,57 @@ It should not be confused with:
 - a production SaaS application
 - a public self-serve AI execution system
 
-## Placeholders
-
-- `apps/api` is a placeholder until Phase 2
-- `apps/web` is a placeholder until Phase 3
-
 ## Data model posture
 
 - data is file-backed JSON for v0
 - all data is fake
 - no real companies, no real customer data, no secrets
+- no database
+- no auth
+- no external APIs
+
+## Backend posture
+
+The backend is intentionally small and boring:
+- Fastify
+- file-backed runtime JSON under `data/runtime/`
+- no DB
+- no auth
+- no external services
+- no `manual_review` status yet
+
+## Frontend posture
+
+The frontend is intentionally minimal:
+- Vite
+- React
+- TypeScript
+- plain CSS
+- no router
+- no UI library
+- no state manager
+
+Vite dev proxy forwards:
+- `/api`
+- `/health`
+
+to the backend at `http://127.0.0.1:4311`
+
+No backend CORS dependency is used.
+
+## Demo baseline
+
+Current baseline behavior:
+- trial requests can be moved directly to `approved`
+- dashboard counts update from backend data
+- audit log records status changes
+- this is intentionally the before-state for the future workflow-change scenario
+
+The future `manual_review` flow is not implemented yet by design.
+
+Recommended verification flow:
+
+```bash
+npm run reset
+npm run smoke
+```

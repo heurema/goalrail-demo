@@ -15,9 +15,15 @@
     "dev": "node scripts/dev.mjs",
     "reset": "node scripts/reset-demo.mjs",
     "smoke": "node scripts/smoke-test.mjs",
-    "typecheck": "tsc -p tsconfig.base.json --noEmit"
+    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "api:build": "npm -w apps/api run build",
+    "api:start": "npm -w apps/api run start",
+    "web:dev": "npm -w apps/web run dev",
+    "web:build": "npm -w apps/web run build",
+    "web:typecheck": "npm -w apps/web run typecheck"
   },
   "devDependencies": {
+    "@types/node": "^22.19.17",
     "typescript": "^5.9.3"
   }
 }
