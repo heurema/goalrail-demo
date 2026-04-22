@@ -2,9 +2,10 @@
 
 ## Demo window
 
-- Target duration: **12–15 minutes**
+- Target duration: **10–12 minutes**
+- Fast path: **7 minutes** using `docs/demo/DEMO_FAST_PATH_7MIN.md`
 - Audience: CTO, Head of Engineering, product-minded buyer
-- Goal: show the Goalrail-style flow on top of the existing TrialOps baseline app
+- Goal: show the Goalrail-style flow on top of a bounded TrialOps sandbox
 
 ## Setup / preflight
 
@@ -16,146 +17,136 @@ npm run reset
 npm run dev
 ```
 
-Optional confidence check:
+Recommended confidence run before the meeting:
 
 ```bash
+npm run typecheck
+npm run api:build
+npm run web:build
 npm run smoke
 ```
 
 Open:
 - Web UI: `http://127.0.0.1:5173`
 - Proof pack folder: `demo/proof-packs/workflow-change/`
+- Fast path script: `docs/demo/DEMO_FAST_PATH_7MIN.md`
 
 ## What this demo is and is not
 
 ### Say
 
 - “This is a deterministic demo sandbox, not the Goalrail product codebase.”
-- “We are showing a pilot-style operating flow from business request to proof.”
-- “The app is intentionally a baseline internal tool so the change request is easy to understand.”
+- “The point is not AI writing code live; the point is a controlled path from business request to proof.”
+- “The app is intentionally small so the workflow change is obvious.”
 
 ### Avoid saying
 
 - “This is a finished platform.”
-- “The system will autonomously implement anything live.”
-- “Everything here is already production-ready.”
+- “Everything here is automatic end to end.”
+- “This is a generic workflow engine.”
+- “This is production-ready customer infrastructure.”
 
 ## Recommended timeline
 
-### 1. Introduce the baseline app — 2 minutes
+### 1. Introduce the app and the mode switch — 1.5 minutes
 
 Show:
-- dashboard counts
-- request list
-- request detail
-- audit log panel
+- the top-bar `Demo mode` switcher
+- the request list
+- the detail panel
+- the audit log panel
 
 Say:
 - “This is TrialOps, a small internal tool for handling trial requests.”
-- “It already works, but the workflow is intentionally simple.”
+- “The switcher lets us show both the weakness and the bounded Goalrail slice in one running app.”
 
-### 2. Show the current weakness — 1 minute
+### 2. Show the baseline weakness — 1.5 minutes
 
-In the UI, select one request and show the status update form.
-
-Say:
-- “Right now the baseline flow allows direct approval.”
-- “That is exactly the weakness we want the audience to see before the business request arrives.”
-
-## 3. Introduce the business request — 2 minutes
-
-Open:
-- `demo/proof-packs/workflow-change/business-request.md`
+In the UI:
+- stay in **Baseline** mode
+- select a `qualified` request
+- point to the warning in the detail panel
+- show that `Approve trial` is immediately available
+- do not click approve yet
 
 Say:
-- “The request is simple in business language: approvals now need manual review, owner assignment, and a decision reason.”
-- “At this point we should not jump straight into code.”
+- “This is the deliberate before-state.”
+- “A single operator can approve directly. No second reviewer is required.”
 
-## 4. Show clarification questions — 2 minutes
+### 3. Open the Goalrail flow overlay — 1.5 minutes
 
-Open:
-- `demo/proof-packs/workflow-change/clarification-questions.md`
+Click:
+- `Goalrail flow`
 
 Say:
-- “The first move is clarification, not implementation.”
-- “For demo reliability we also have recommended answers so the narrative stays bounded.”
+- “This is the operating shape we want to talk about.”
+- “Business request, clarification, contract, bounded task plan, inspectable proof, pilot readout.”
 
 Call out:
-- workflow
-- ownership
-- validation
-- audit/proof
-- rollout risk
+- the step titles
+- the artifact paths in the drawer
 
-## 5. Show the contract draft — 2 minutes
+### 4. Switch to Goalrail mode — 1 minute
 
-Open:
-- `demo/proof-packs/workflow-change/contract-draft.md`
+Toggle:
+- `Goalrail slice`
 
 Say:
-- “This is the working contract draft for the slice.”
-- “It makes scope, non-goals, acceptance criteria, and proof expectations explicit.”
+- “Now the workflow-change slice is active.”
+- “Approval is blocked until review is completed.”
 
-Emphasize:
-- in scope
-- out of scope
-- acceptance criteria
-- proof expectations
+### 5. Move the request into manual review — 1 minute
 
-## 6. Show the bounded task plan — 2 minutes
-
-Open:
-- `demo/proof-packs/workflow-change/task-plan.md`
+In the detail panel:
+- click `Send to manual review`
+- pause on the updated `Manual review` count/filter before approving
 
 Say:
-- “The change is now decomposed into a few bounded tasks.”
-- “This is not a rewrite. It is a controlled workflow change.”
+- “The request must now pass through `manual_review` before it can be approved.”
 
-Emphasize:
-- shared status model
-- API validation and transitions
-- frontend controls and counts
-- smoke/proof/docs updates
+Show:
+- manual review status chip
+- dashboard/filter visibility for `Manual review`
 
-## 7. Show expected proof — 1.5 minutes
+### 6. Complete the review decision — 2 minutes
 
-Open:
-- `demo/proof-packs/workflow-change/proof-template.md`
-- `demo/proof-packs/workflow-change/readout-template.md`
-
-Say:
-- “The goal is not only to ship a change.”
-- “The goal is to end with inspectable proof: what changed, how it was checked, and whether to accept, block, or escalate.”
-
-## 8. Optional pilot connection — 1 minute
+In the `Review decision` form:
+- keep reviewer actor visible (`demo.presenter`)
+- enter owner
+- enter reason
+- click `Approve after review`
 
 Say:
-- “This is the kind of bounded case we use to frame a managed pilot.”
-- “One team, one repo, one visible flow to proof.”
+- “Now approval is an inspectable review decision, not a one-click shortcut.”
 
-## 9. Close with CTA — 1 minute
+### 7. Show audit and proof — 1.5 minutes
+
+Show:
+- audit log entry with actor, from status, to status, owner, reason, timestamp
+- proof sample: `demo/proof-packs/workflow-change/proof-sample.md`
+- readout sample: `demo/proof-packs/workflow-change/readout-sample.md`
+
+Say:
+- “The value is not only the code change.”
+- “The value is that the change ends with inspectable proof and a bounded readout.”
+
+### 8. Close with CTA — 1 minute
 
 Suggested close:
-- “If this kind of change is representative of your delivery pain, the next step is a bounded pilot case, not a broad rollout.”
 
-## Fallback path if AI / GLR is unavailable
+> “If this type of workflow-change pain is real in your team, the next step is one team, one repo, one case, one visible flow to proof.”
 
-If any live AI or agentic step is unavailable:
-- keep the UI running as the baseline before-state
-- use the prepared proof-pack docs instead of live generation
-- explicitly say that the demo is about the operating shape, not dependency on a live AI call
+## Fallback path if anything is noisy
 
-Fallback order:
-1. baseline app
-2. business request
-3. clarification questions
-4. contract draft
-5. task plan
-6. proof template
+If any live step becomes noisy:
+1. keep the UI open in baseline or Goalrail mode
+2. use the flow overlay
+3. open the proof sample and readout sample
+4. keep the message focused on bounded flow, not automation theatrics
 
 ## Presenter notes
 
-- keep the story bounded
-- do not improvise new requirements mid-demo
-- do not promise that the runtime behavior is already implemented
-- use the proof pack whenever a live step risks becoming noisy
+- Keep the story narrow.
+- Do not improvise new requirements mid-demo.
+- Do not overclaim AI automation.
+- Use the flow overlay and proof artifacts whenever the room needs a clearer frame.

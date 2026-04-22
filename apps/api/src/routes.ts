@@ -7,13 +7,16 @@ import type { FastifyInstance, FastifyReply } from "fastify";
 import { NotFoundError, ValidationError } from "./errors.js";
 import {
   allowedStatuses,
+  allowedWorkflowModes,
   findTrialRequestById,
   getStatusCounts,
   readAuditLog,
+  readDemoMode,
   readTrialRequests,
+  updateDemoMode,
   updateTrialRequestStatus
 } from "./data-store.js";
-import type { TrialRequestStatus } from "./types.js";
+import type { DemoWorkflowMode, TrialRequest, TrialRequestStatus } from "./types.js";
 
 const webDistRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -69,7 +72,12 @@ const sendWebIndex = async (reply: FastifyReply) => {
 type StatusPatchBody = {
   status?: string;
   actor?: string;
+  owner?: string;
   reason?: string;
+};
+
+type DemoModePatchBody = {
+  workflowMode?: string;
 };
 
 type AuditLogQuery = {
@@ -80,11 +88,81 @@ const isTrialRequestStatus = (
   value: string
 ): value is TrialRequestStatus => allowedStatuses.includes(value as TrialRequestStatus);
 
+const isDemoWorkflowMode = (
+  value: string
+): value is DemoWorkflowMode =>
+  allowedWorkflowModes.includes(value as DemoWorkflowMode);
+
+const normalizeOptionalText = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const goalrailTransitions: Record<TrialRequestStatus, TrialRequestStatus[]> = {
+  new: ["qualified", "manual_review"],
+  qualified: ["manual_review"],
+  manual_review: ["approved", "rejected"],
+  approved: [],
+  rejected: []
+};
+
+const validateGoalrailTransition = (input: {
+  current: TrialRequest;
+  targetStatus: TrialRequestStatus;
+  owner?: string;
+  reason?: string;
+}): void => {
+  const { current, targetStatus, owner, reason } = input;
+
+  if (
+    (current.status === "new" || current.status === "qualified") &&
+    targetStatus === "approved"
+  ) {
+    throw new ValidationError(
+      "Approval requires manual review in Goalrail mode",
+      "review_required"
+    );
+  }
+
+  if (
+    current.status === "manual_review" &&
+    (targetStatus === "approved" || targetStatus === "rejected")
+  ) {
+    if (!owner) {
+      throw new ValidationError(
+        "Assigned owner is required for a review decision",
+        "owner_required"
+      );
+    }
+
+    if (!reason) {
+      throw new ValidationError(
+        "Decision reason is required for a review decision",
+        "reason_required"
+      );
+    }
+
+    return;
+  }
+
+  const allowedTargets = goalrailTransitions[current.status];
+  if (!allowedTargets.includes(targetStatus)) {
+    throw new ValidationError(
+      `Transition from ${current.status} to ${targetStatus} is not allowed in Goalrail mode`,
+      "invalid_transition"
+    );
+  }
+};
+
 export const registerRoutes = (app: FastifyInstance): void => {
   app.get("/health", async () => ({
     status: "ok",
     service: "trialops-api",
-    phase: "2",
+    phase: "5",
     dataStore: "file-backed-json"
   }));
 
@@ -97,6 +175,21 @@ export const registerRoutes = (app: FastifyInstance): void => {
         statusCounts: getStatusCounts(items)
       }
     };
+  });
+
+  app.get("/api/demo-mode", async () => readDemoMode());
+
+  app.patch<{ Body: DemoModePatchBody }>("/api/demo-mode", async (request) => {
+    const mode = request.body?.workflowMode;
+
+    if (typeof mode !== "string" || !isDemoWorkflowMode(mode)) {
+      throw new ValidationError(
+        "Invalid workflow mode. Allowed modes: baseline, goalrail",
+        "invalid_workflow_mode"
+      );
+    }
+
+    return updateDemoMode(mode);
   });
 
   app.get<{ Params: { id: string } }>(
@@ -115,10 +208,12 @@ export const registerRoutes = (app: FastifyInstance): void => {
     "/api/trial-requests/:id/status",
     async (request) => {
       const body = request.body ?? {};
+      const owner = normalizeOptionalText(body.owner);
+      const reason = normalizeOptionalText(body.reason);
 
       if (typeof body.status !== "string" || !isTrialRequestStatus(body.status)) {
         throw new ValidationError(
-          "Invalid status. Allowed statuses: new, qualified, approved, rejected",
+          "Invalid status. Allowed statuses: new, qualified, manual_review, approved, rejected",
           "invalid_status"
         );
       }
@@ -129,7 +224,7 @@ export const registerRoutes = (app: FastifyInstance): void => {
 
       if (
         body.reason !== undefined &&
-        (typeof body.reason !== "string" || body.reason.trim().length === 0)
+        reason === undefined
       ) {
         throw new ValidationError(
           "Reason must be a non-empty string when provided",
@@ -137,11 +232,35 @@ export const registerRoutes = (app: FastifyInstance): void => {
         );
       }
 
+      if (body.owner !== undefined && owner === undefined) {
+        throw new ValidationError(
+          "Assigned owner must be a non-empty string when provided",
+          "invalid_owner"
+        );
+      }
+
+      const current = await findTrialRequestById(request.params.id);
+      if (!current) {
+        throw new NotFoundError();
+      }
+
+      const workflowMode = (await readDemoMode()).workflowMode;
+
+      if (workflowMode === "goalrail") {
+        validateGoalrailTransition({
+          current,
+          targetStatus: body.status,
+          owner,
+          reason
+        });
+      }
+
       const result = await updateTrialRequestStatus({
         id: request.params.id,
         status: body.status,
         actor: body.actor.trim(),
-        reason: body.reason?.trim()
+        owner,
+        reason
       });
 
       if (!result) {

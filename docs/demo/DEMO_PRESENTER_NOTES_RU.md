@@ -2,185 +2,142 @@
 
 ## 1. Цель демо
 
-- Показать не “AI написал код”, а управляемый pilot-style flow:
-  `business request -> clarification -> contract -> task plan -> proof`
-- Показать, что даже маленький change request можно быстро перевести из vague business языка в bounded delivery slice.
-- Подвести к managed pilot, а не к обещанию “полной автоматизации”.
+- Показать не “AI написал код”, а управляемый Goalrail-style flow:
+  `business request -> clarification -> working contract -> bounded task plan -> implementation/preview -> inspectable proof -> pilot CTA`
+- Показать проблему и решение в одном запуске через переключатель demo mode.
+- Подвести к bounded pilot, а не к обещанию “полной автоматизации”.
 
 ## 2. Что это демо НЕ обещает
 
-- Это не готовый Goalrail product.
-- Это не публичный self-serve AI demo.
-- Это не live guarantee, что любой запрос будет автоматически реализован.
-- Это не production-ready platform claim.
+- Это не production Goalrail platform.
+- Это не live AI coding show.
+- Это не generic workflow engine.
+- Это не enterprise governance system.
+- Это не self-serve SaaS.
 
-Короткая формулировка:
+Короткая фраза:
 
-> “Это demo sandbox для pilot-style flow, а не готовая платформа.”
+> “Это deterministic sandbox, который показывает управляемый путь от change request к proof.”
 
-## 3. Структура показа на 12–15 минут
+## 3. Быстрый сюжет
 
-### 0:00–1:00 — framing
-
-Что открыть:
-- UI: `http://127.0.0.1:5173`
+### Шаг 1 — framing
 
 Что говорить:
-- “Сейчас покажу не платформу и не автопилот, а понятный flow: от бизнес-запроса к bounded task plan и proof.”
-- “Это маленький internal tool, специально выбранный так, чтобы бизнес-изменение было читаемо.”
+- “Сейчас покажу не автопилот и не платформу, а понятный before/after workflow slice.”
+- “TrialOps — маленький internal tool, специально подходящий для такой демонстрации.”
 
-### 1:00–3:00 — baseline app
+### Шаг 2 — before-state
 
 Что показать:
-- dashboard counts
-- request list
-- detail panel
-- audit log
+- top-bar switcher в режиме **Baseline**
+- `qualified` request
+- warning про direct approval
+- кнопку `Approve trial`
 
 Что говорить:
-- “Это TrialOps, небольшой internal tool для обработки trial requests.”
-- “Он уже работает, но workflow здесь специально простой.”
+- “Вот baseline weakness: direct approval possible.”
+- “Это и есть before-state, который бизнес хочет поменять.”
+- “Я здесь специально не нажимаю approve — мне важно сначала показать сам дефект процесса.”
 
-### 3:00–5:00 — baseline weakness
+### Шаг 3 — Goalrail flow overlay
 
 Что показать:
-- выбрать заявку
-- открыть detail
-- показать status update form
-- показать, что можно сразу поставить `approved`
+- `Goalrail flow`
+- шесть шагов и artifact paths
 
 Что говорить:
-- “Сейчас видно слабое место baseline-flow: заявку можно сразу approve.”
-- “Для части команд это уже риск: нет review step, нет owner assignment requirement, нет decision reason as policy.”
+- “Мы продаём не магию, а operating flow: сначала понятный request, потом clarification, contract, tasks, proof, readout.”
 
-Главная мысль:
+### Шаг 4 — after-state
 
-> “Нам нужен понятный before-state, чтобы change request был очевиден.”
+Что показать:
+- переключение в **Goalrail slice**
+- banner про review gate
+- `Send to manual review`
+- `Manual review` status/count/filter
 
-### 5:00–7:00 — business request
+Что говорить:
+- “Теперь approval заблокирован до manual review.”
+- “После review решение должно быть inspectable.”
+- “Сначала фиксируем, что request действительно попал в manual review, и только потом завершаем approval.”
+
+### Шаг 5 — review decision
+
+Что показать:
+- reviewer actor
+- owner
+- reason
+- `Approve after review`
+
+Что говорить:
+- “Approval теперь не shortcut, а review decision с actor, owner и reason.”
+
+### Шаг 6 — proof
 
 Что открыть:
-- `demo/proof-packs/workflow-change/business-request.md`
+- `demo/proof-packs/workflow-change/proof-sample.md`
+- `demo/proof-packs/workflow-change/readout-sample.md`
 
 Что говорить:
-- “Теперь приходит нормальный business request: перед approval нужен manual review.”
-- “Важно не прыгать сразу в код, а сначала снять неоднозначность.”
+- “Ценность здесь не только в change itself, а в том, что change заканчивается проверяемым proof и честным readout.”
 
-Короткая формулировка:
+### Шаг 7 — CTA
 
-> “Approval больше не должен быть прямым действием. Нужен review, owner и reason.”
+Короткая фраза:
 
-### 7:00–9:00 — clarification
+> “One team, one repo, one case, one visible flow to proof.”
 
-Что открыть:
-- `demo/proof-packs/workflow-change/clarification-questions.md`
+Опционально:
 
-Что говорить:
-- “Первое действие здесь — clarification, а не implementation.”
-- “В демо у нас есть recommended answers, чтобы не расползаться по scope.”
+> “Если ваш delivery pain похож на это, следующий шаг — bounded pilot, не broad rollout.”
 
-На что сделать акцент:
-- workflow
-- роли и ownership
-- validation
-- audit / proof
-- rollout risk
+## 4. Где сделать акцент
 
-### 9:00–11:00 — contract draft
+- baseline warning: direct approval enabled
+- visible manual review step
+- actor / owner / reason in audit evidence
+- proof sample и readout sample как конечные артефакты
 
-Что открыть:
-- `demo/proof-packs/workflow-change/contract-draft.md`
-
-Что говорить:
-- “Дальше change фиксируется как рабочий contract draft.”
-- “Здесь важны scope, non-goals, acceptance criteria и expected proof.”
-
-Что подчеркнуть:
-- in scope
-- out of scope
-- acceptance criteria
-- proof expectations
-
-### 11:00–13:00 — bounded task plan + proof
-
-Что открыть:
-- `demo/proof-packs/workflow-change/task-plan.md`
-- `demo/proof-packs/workflow-change/proof-template.md`
-- `demo/proof-packs/workflow-change/readout-template.md`
-
-Что говорить:
-- “Теперь это не vague request, а bounded delivery slice.”
-- “Важно не просто изменить код, а закончить проверяемым proof pack.”
-
-Главная формулировка:
-
-> “Мы продаём не магию, а управляемый путь от change request к inspectable proof.”
-
-### 13:00–15:00 — close / CTA
-
-Что говорить:
-- “Если ваш типовой delivery pain похож на это, следующий шаг — не большая трансформация, а bounded pilot.”
-- “Обычно мы начинаем с free qualification, а затем предлагаем paid pilot от $5,000.”
-- “Формат пилота простой: one team, one repo, one case, one visible flow to proof.”
-
-## 4. Где сделать паузы
-
-- После показа baseline UI — дать аудитории самой увидеть, что direct approval действительно возможен.
-- После business request — короткая пауза, чтобы зафиксировать: это бизнес-язык, а не технический diff.
-- После contract draft — короткая пауза на acceptance criteria.
-- Перед CTA — пауза на вопрос: “Похоже ли это на ваш реальный delivery pattern?”
-
-## 5. Как объяснить ценность
+## 5. Чего избегать
 
 Не говорить:
-- “AI сам всё сделает.”
-- “Это заменит engineering management.”
-- “Это готовая enterprise platform.”
+- “AI всё сделал автоматически.”
+- “Это уже production-ready система.”
+- “Сейчас мы строим универсальный workflow engine.”
 
 Говорить:
-- “Смысл в том, чтобы сократить путь от vague request к bounded change.”
-- “Смысл в прозрачности: scope, tasks, proof и readout видны заранее.”
-- “Для пилота важна не полнота автоматизации, а надёжный visible flow.”
+- “Это bounded slice.”
+- “Это demo sandbox.”
+- “Это inspectable proof-driven flow.”
 
 ## 6. Fallback
 
-### Если live AI / GLR недоступен
-
-- не пытаться импровизировать live generation
-- оставить UI как before-state
-- перейти на prepared proof pack
-
-Фраза:
-
-> “Здесь важна не зависимость от live AI-call, а форма operating flow. Поэтому у нас заранее подготовлены bounded artifacts.”
-
-### Если UI не открывается
-
-- показать `docs/demo/DEMO_SHOW_SCRIPT.md`
-- показать `business-request.md`
-- показать `clarification-questions.md`
-- показать `contract-draft.md`
-- показать `task-plan.md`
-- показать `proof-template.md`
+Если что-то идёт шумно:
+- не импровизировать новые фичи
+- оставить UI как есть
+- открыть flow overlay
+- открыть proof sample и readout sample
 
 Фраза:
 
-> “Даже без живого UI можно показать core value: как запрос превращается в проверяемый pilot slice.”
+> “Даже без live automation здесь видна ключевая ценность: bounded path от change request к proof.”
 
-### Если времени мало
+## 7. Быстрые reminders
 
-Сокращённый маршрут:
-1. baseline weakness
-2. business request
-3. contract draft
-4. task plan
-5. proof template
-6. CTA
+- Держать историю узкой.
+- Не перегружать audience деталями implementation.
+- Показывать before/after контраст.
+- Закрывать разговор pilot CTA, а не платформой.
 
-## 7. Быстрые presenter reminders
+## 8. Fallback ports
 
-- Держать историю узкой и понятной.
-- Не добавлять новые требования на ходу.
-- Не обещать, что `manual review` уже реализован.
-- Напоминать, что это before-state + proof-driven demo layer.
-- Закрывать разговор пилотом, а не “давайте сразу строить платформу”.
+Если дефолтные порты заняты:
+
+```bash
+npm run reset
+API_PORT=4411 WEB_PORT=5174 npm run dev
+```
+
+- Default Web: `http://127.0.0.1:5173`
+- Fallback Web: `http://127.0.0.1:5174`
