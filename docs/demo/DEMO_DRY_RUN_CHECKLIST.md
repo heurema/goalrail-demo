@@ -6,7 +6,7 @@
 - [ ] No unexpected local changes beyond planned demo files
 - [ ] Ports `4311` and `5173` are free
 - [ ] Terminal windows are ready
-- [ ] Proof sample and readout sample are easy to open
+- [ ] Goalrail artifacts viewer is part of the planned live path
 
 ## App startup checklist
 
@@ -43,7 +43,7 @@ npm run smoke
 
 ## Goalrail / after-state checklist
 
-- [ ] `Goalrail flow` button opens the overlay
+- [ ] `Goalrail artifacts` button opens the artifact workspace
 - [ ] Switching to **Goalrail slice** works without reload
 - [ ] Goalrail banner appears
 - [ ] `Send to manual review` is visible for intake requests
@@ -55,17 +55,20 @@ npm run smoke
 
 ## Artifact checklist
 
-- [ ] `business-request.md` opens cleanly
-- [ ] `clarification-questions.md` opens cleanly
-- [ ] `contract-draft.md` opens cleanly
-- [ ] `task-plan.md` opens cleanly
-- [ ] `proof-sample.md` opens cleanly
-- [ ] `readout-sample.md` opens cleanly
+- [ ] Business request tab renders in the UI
+- [ ] Clarification tab renders in the UI
+- [ ] Working contract tab renders in the UI
+- [ ] Task plan tab renders in the UI
+- [ ] Proof tab renders in the UI
+- [ ] Readout tab renders in the UI
+- [ ] Current evidence card updates after a workflow transition
 - [ ] `docs/demo/DEMO_FAST_PATH_7MIN.md` is accessible during the demo
+- [ ] Markdown artifacts remain available only as fallback/reference
 
 ## Failure fallback checklist
 
-- [ ] If UI becomes noisy, continue with the Goalrail flow overlay + proof/readout samples
+- [ ] If UI becomes noisy, continue with the Goalrail artifacts panel first
+- [ ] Open markdown artifacts only if the UI becomes unusable
 - [ ] If smoke was run recently, `npm run reset` before the meeting
 - [ ] Keep the message focused on bounded flow, not automation theatrics
 

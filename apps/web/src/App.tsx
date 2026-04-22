@@ -9,7 +9,15 @@ import {
   updateDemoMode,
   updateTrialRequestStatus
 } from "./api.js";
-import { demoArtifactSteps } from "./demoArtifacts.js";
+import {
+  demoArtifactOrder,
+  demoArtifacts,
+  type DemoArtifact,
+  type DemoArtifactCard,
+  type DemoArtifactKind,
+  type DemoArtifactSection,
+  type DemoArtifactTable
+} from "./demoArtifacts.js";
 import type {
   AuditEvent,
   DemoWorkflowMode,
@@ -581,7 +589,9 @@ export default function App() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [modeUpdating, setModeUpdating] = useState(false);
-  const [flowPanelOpen, setFlowPanelOpen] = useState(false);
+  const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
+  const [activeArtifactId, setActiveArtifactId] =
+    useState<DemoArtifactKind>("business_request");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   const refreshRuntime = async (targetId?: string | null) => {
@@ -709,6 +719,16 @@ export default function App() {
     return auditItems.filter((item) => item.requestId === selectedId);
   }, [auditItems, selectedId]);
 
+  const latestSelectedAuditItem = useMemo(() => {
+    if (selectedAuditItems.length === 0) {
+      return null;
+    }
+
+    return [...selectedAuditItems].sort((left, right) =>
+      right.createdAt.localeCompare(left.createdAt)
+    )[0] ?? null;
+  }, [selectedAuditItems]);
+
   const selectedPresentation = useMemo(
     () => (selectedItem ? getTrialPresentation(selectedItem) : null),
     [selectedItem]
@@ -829,6 +849,11 @@ export default function App() {
     []
   );
 
+  const openArtifactPanel = (artifactId: DemoArtifactKind = activeArtifactId) => {
+    setActiveArtifactId(artifactId);
+    setArtifactPanelOpen(true);
+  };
+
   return (
     <>
       <div className="app" data-screen-label="TrialOps Workflow Change Demo">
@@ -926,9 +951,9 @@ export default function App() {
               <button
                 type="button"
                 className="btn"
-                onClick={() => setFlowPanelOpen(true)}
+                onClick={() => openArtifactPanel("business_request")}
               >
-                Goalrail flow
+                Goalrail artifacts
               </button>
               <button
                 type="button"
@@ -1321,12 +1346,27 @@ export default function App() {
                           <StatusChip status={selectedItem.status} compact />
                         </div>
                         <p>
-                          The Goalrail slice is now in a final state. Show the audit log, then open the proof and readout samples for the pilot CTA.
+                          The Goalrail slice is now in a final state. Stay in the browser: open the Goalrail artifacts panel, switch to Proof or Readout, and use the Current evidence card next to the live audit.
                         </p>
-                        <ul>
-                          <li>Proof sample · demo/proof-packs/workflow-change/proof-sample.md</li>
-                          <li>Readout sample · demo/proof-packs/workflow-change/readout-sample.md</li>
-                        </ul>
+                        <div className="artifact-shortcuts">
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => openArtifactPanel("proof")}
+                          >
+                            Open proof in UI
+                          </button>
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => openArtifactPanel("readout")}
+                          >
+                            Open readout in UI
+                          </button>
+                        </div>
+                        <div className="artifact-fallback-note">
+                          Markdown files remain available as fallback reference only.
+                        </div>
                       </div>
                     ) : (
                       <div className="form">
@@ -1425,11 +1465,15 @@ export default function App() {
         </main>
       </div>
 
-      {flowPanelOpen ? (
-        <FlowDrawer
+      {artifactPanelOpen ? (
+        <GoalrailArtifactPanel
           workflowMode={demoMode}
           selectedItem={selectedItem}
-          onClose={() => setFlowPanelOpen(false)}
+          selectedAuditItems={selectedAuditItems}
+          latestAuditItem={latestSelectedAuditItem}
+          activeArtifactId={activeArtifactId}
+          onSelectArtifact={setActiveArtifactId}
+          onClose={() => setArtifactPanelOpen(false)}
         />
       ) : null}
 
@@ -1494,26 +1538,49 @@ function StatusChip(props: { status: TrialRequestStatus; compact?: boolean }) {
   );
 }
 
-function FlowDrawer(props: {
+const formatArtifactStatus = (value: DemoArtifact["status"]): string =>
+  value.replace("_", " ");
+
+function GoalrailArtifactPanel(props: {
   workflowMode: DemoWorkflowMode;
   selectedItem: TrialRequest | null;
+  selectedAuditItems: AuditEvent[];
+  latestAuditItem: AuditEvent | null;
+  activeArtifactId: DemoArtifactKind;
+  onSelectArtifact: (artifactId: DemoArtifactKind) => void;
   onClose: () => void;
 }) {
+  const activeArtifact =
+    demoArtifacts.find((artifact) => artifact.id === props.activeArtifactId) ??
+    demoArtifacts[0];
+
+  const latestTransition = props.latestAuditItem
+    ? `${formatStatusTitle(props.latestAuditItem.fromStatus)} → ${formatStatusTitle(
+        props.latestAuditItem.toStatus
+      )}`
+    : "Evidence pending";
+
   return (
-    <div className="flow-overlay" role="dialog" aria-modal="true" aria-label="Goalrail flow overlay">
+    <div
+      className="artifact-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Goalrail artifacts panel"
+    >
       <button
         type="button"
-        className="flow-overlay-backdrop"
-        aria-label="Close Goalrail flow overlay"
+        className="artifact-overlay-backdrop"
+        aria-label="Close Goalrail artifacts panel"
         onClick={props.onClose}
       />
-      <aside className="flow-drawer">
-        <div className="flow-drawer-head">
+      <aside className="artifact-panel">
+        <div className="artifact-panel-head">
           <div>
-            <div className="flow-drawer-eyebrow">Goalrail flow</div>
-            <h2>Business request → proof</h2>
+            <div className="artifact-panel-eyebrow">Goalrail artifacts</div>
+            <h2>Artifact workspace</h2>
             <p>
-              The sandbox stays deterministic, but the artifacts make the bounded delivery flow visible and inspectable.
+              Stay in the UI for business request, clarification, contract, task plan,
+              proof, readout, and live evidence from the selected request.
             </p>
           </div>
           <button type="button" className="icon-btn" onClick={props.onClose} title="Close">
@@ -1521,50 +1588,303 @@ function FlowDrawer(props: {
           </button>
         </div>
 
-        <div className="flow-drawer-summary">
-          <div>
-            <span className="summary-label">Current mode</span>
-            <b>{props.workflowMode === "baseline" ? "Baseline / before-state" : "Goalrail slice / after-state"}</b>
-          </div>
-          <div>
-            <span className="summary-label">Selected request</span>
-            <b>
-              {props.selectedItem
-                ? `${formatRequestCode(props.selectedItem.id)} · ${formatStatusTitle(props.selectedItem.status)}`
-                : "No request selected"}
-            </b>
-          </div>
+        <div className="artifact-context-strip">
+          <ArtifactContextStat
+            label="Current mode"
+            value={
+              props.workflowMode === "baseline"
+                ? "Baseline / before-state"
+                : "Goalrail slice / after-state"
+            }
+          />
+          <ArtifactContextStat
+            label="Selected request"
+            value={
+              props.selectedItem ? formatRequestCode(props.selectedItem.id) : "No request selected"
+            }
+          />
+          <ArtifactContextStat
+            label="Current status"
+            value={
+              props.selectedItem
+                ? formatStatusTitle(props.selectedItem.status)
+                : "No request selected"
+            }
+          />
+          <ArtifactContextStat
+            label="Current owner"
+            value={props.selectedItem?.owner ?? "Unassigned"}
+          />
+          <ArtifactContextStat
+            label="Latest audit evidence"
+            value={latestTransition}
+          />
         </div>
 
-        <div className="flow-chain" aria-hidden="true">
-          <span>Request</span>
-          <span>Clarify</span>
-          <span>Contract</span>
-          <span>Tasks</span>
-          <span>Proof</span>
-          <span>Readout</span>
+        <div className="artifact-contour" aria-label="Demo proof contour">
+          {demoArtifactOrder.map((artifactId) => {
+            const artifact = demoArtifacts.find((item) => item.id === artifactId);
+            if (!artifact) {
+              return null;
+            }
+
+            return (
+              <button
+                key={artifact.id}
+                type="button"
+                className={`artifact-contour-step${
+                  artifact.id === activeArtifact.id ? " active" : ""
+                }`}
+                onClick={() => props.onSelectArtifact(artifact.id)}
+              >
+                {artifact.navLabel}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="flow-step-list">
-          {demoArtifactSteps.map((step, index) => (
-            <article key={step.id} className="flow-step-card">
-              <div className="flow-step-index">0{index + 1}</div>
-              <div className="flow-step-body">
-                <div className="flow-step-top">
-                  <h3>{step.title}</h3>
-                  <span className={`flow-step-status ${step.statusLabel}`}>{step.statusLabel}</span>
-                </div>
-                <p>{step.summary}</p>
-                <div className="flow-step-path">
-                  <span>Artifact path</span>
-                  <code>{step.artifactPath}</code>
-                </div>
+        <div className="artifact-workspace">
+          <ArtifactNav
+            activeArtifactId={activeArtifact.id}
+            onSelectArtifact={props.onSelectArtifact}
+          />
+
+          <div className="artifact-detail-shell">
+            <div className="artifact-detail-head">
+              <div>
+                <div className="artifact-detail-eyebrow">Selected artifact</div>
+                <h3>{activeArtifact.title}</h3>
+                <p>{activeArtifact.subtitle}</p>
               </div>
-            </article>
-          ))}
+              <span className={`artifact-status-pill ${activeArtifact.status}`}>
+                {formatArtifactStatus(activeArtifact.status)}
+              </span>
+            </div>
+
+            <div className="artifact-detail-meta">
+              <div className="artifact-presenter-cue">
+                <span>Presenter cue</span>
+                <b>{activeArtifact.presenterNote}</b>
+              </div>
+              <div className="artifact-source-meta">
+                <span>Source artifact</span>
+                <code>{activeArtifact.artifactPath}</code>
+              </div>
+            </div>
+
+            <div className="artifact-detail-layout">
+              <div className="artifact-detail-main">
+                {activeArtifact.sections.map((section) => (
+                  <ArtifactSectionCard key={section.title} section={section} />
+                ))}
+
+                {activeArtifact.cards?.length ? (
+                  <ArtifactCardsGrid cards={activeArtifact.cards} />
+                ) : null}
+
+                {activeArtifact.tables?.map((table) => (
+                  <ArtifactTableCard key={table.title} table={table} />
+                ))}
+              </div>
+
+              <div className="artifact-detail-side">
+                <CurrentEvidenceCard
+                  selectedItem={props.selectedItem}
+                  latestAuditItem={props.latestAuditItem}
+                  evidenceCount={props.selectedAuditItems.length}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
     </div>
+  );
+}
+
+function ArtifactNav(props: {
+  activeArtifactId: DemoArtifactKind;
+  onSelectArtifact: (artifactId: DemoArtifactKind) => void;
+}) {
+  return (
+    <nav className="artifact-nav" aria-label="Artifact navigation">
+      {demoArtifacts.map((artifact) => (
+        <button
+          key={artifact.id}
+          type="button"
+          className={`artifact-nav-item${
+            artifact.id === props.activeArtifactId ? " active" : ""
+          }`}
+          onClick={() => props.onSelectArtifact(artifact.id)}
+        >
+          <div className="artifact-nav-top">
+            <span className="artifact-nav-label">{artifact.navLabel}</span>
+            <span className={`artifact-nav-status ${artifact.status}`}>
+              {formatArtifactStatus(artifact.status)}
+            </span>
+          </div>
+          <div className="artifact-nav-note">{artifact.presenterNote}</div>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function ArtifactContextStat(props: { label: string; value: string }) {
+  return (
+    <div className="artifact-context-card">
+      <span>{props.label}</span>
+      <b>{props.value}</b>
+    </div>
+  );
+}
+
+function ArtifactSectionCard(props: { section: DemoArtifactSection }) {
+  return (
+    <article className="artifact-section-card">
+      <h4>{props.section.title}</h4>
+      {props.section.body ? <p>{props.section.body}</p> : null}
+      {props.section.callout ? (
+        <div className="artifact-callout">{props.section.callout}</div>
+      ) : null}
+      {props.section.bullets?.length ? (
+        <ul>
+          {props.section.bullets.map((bullet) => (
+            <li key={bullet}>{bullet}</li>
+          ))}
+        </ul>
+      ) : null}
+    </article>
+  );
+}
+
+function ArtifactCardsGrid(props: { cards: DemoArtifactCard[] }) {
+  return (
+    <div className="artifact-card-grid">
+      {props.cards.map((card) => (
+        <article key={card.title} className="artifact-detail-card">
+          <h4>{card.title}</h4>
+          {card.subtitle ? <p>{card.subtitle}</p> : null}
+          {card.meta?.length ? (
+            <dl className="artifact-card-meta">
+              {card.meta.map((item) => (
+                <div key={`${card.title}-${item.label}`}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+          {card.bullets?.length ? (
+            <ul>
+              {card.bullets.map((bullet) => (
+                <li key={bullet}>{bullet}</li>
+              ))}
+            </ul>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ArtifactTableCard(props: { table: DemoArtifactTable }) {
+  return (
+    <article className="artifact-table-card">
+      <div className="artifact-table-head">
+        <h4>{props.table.title}</h4>
+      </div>
+      <div className="artifact-table-wrap">
+        <table className="artifact-table">
+          <thead>
+            <tr>
+              {props.table.columns.map((column) => (
+                <th key={column}>{column}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {props.table.rows.map((row) => (
+              <tr key={row.join("|")}>
+                {row.map((cell, index) => (
+                  <td key={`${row[0]}-${props.table.columns[index]}`}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  );
+}
+
+function CurrentEvidenceCard(props: {
+  selectedItem: TrialRequest | null;
+  latestAuditItem: AuditEvent | null;
+  evidenceCount: number;
+}) {
+  return (
+    <aside className="current-evidence-card">
+      <div className="current-evidence-head">
+        <div>
+          <div className="artifact-detail-eyebrow">Current evidence</div>
+          <h4>Live request proof</h4>
+        </div>
+        <span className="current-evidence-count">{props.evidenceCount} events</span>
+      </div>
+
+      <dl className="current-evidence-grid">
+        <div>
+          <dt>Selected request</dt>
+          <dd>
+            {props.selectedItem ? formatRequestCode(props.selectedItem.id) : "No request selected"}
+          </dd>
+        </div>
+        <div>
+          <dt>Current status</dt>
+          <dd>
+            {props.selectedItem
+              ? formatStatusTitle(props.selectedItem.status)
+              : "No request selected"}
+          </dd>
+        </div>
+        <div>
+          <dt>Owner</dt>
+          <dd>{props.selectedItem?.owner ?? "Unassigned"}</dd>
+        </div>
+      </dl>
+
+      {props.latestAuditItem ? (
+        <>
+          <dl className="current-evidence-grid">
+            <div>
+              <dt>Latest transition</dt>
+              <dd>
+                {formatStatusTitle(props.latestAuditItem.fromStatus)} →{" "}
+                {formatStatusTitle(props.latestAuditItem.toStatus)}
+              </dd>
+            </div>
+            <div>
+              <dt>Latest actor</dt>
+              <dd>{props.latestAuditItem.actor}</dd>
+            </div>
+            <div>
+              <dt>Latest time</dt>
+              <dd>{formatAuditTime(props.latestAuditItem.createdAt)}</dd>
+            </div>
+          </dl>
+
+          <div className="current-evidence-reason">
+            <span>Latest reason</span>
+            <p>{props.latestAuditItem.reason ?? "No reason recorded."}</p>
+          </div>
+        </>
+      ) : (
+        <div className="current-evidence-empty">
+          Evidence will appear here after a workflow transition.
+        </div>
+      )}
+    </aside>
   );
 }
 

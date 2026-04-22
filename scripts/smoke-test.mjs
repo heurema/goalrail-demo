@@ -15,6 +15,7 @@ const trialRequestsRuntimePath = path.join(runtimeDir, "trial-requests.json");
 const auditLogRuntimePath = path.join(runtimeDir, "audit-log.json");
 const demoModeRuntimePath = path.join(runtimeDir, "demo-mode.json");
 const typesPath = path.join(rootDir, "packages", "shared", "src", "types.ts");
+const appPath = path.join(rootDir, "apps", "web", "src", "App.tsx");
 const apiEntryPath = path.join(rootDir, "apps", "api", "dist", "main.js");
 const webDistHtmlPath = path.join(rootDir, "apps", "web", "dist", "index.html");
 const demoArtifactsPath = path.join(rootDir, "apps", "web", "src", "demoArtifacts.ts");
@@ -37,6 +38,14 @@ const requiredFiles = [
   "demo/proof-packs/workflow-change/readout-sample.md",
   "docs/demo/DEMO_FAST_PATH_7MIN.md",
   "apps/web/src/demoArtifacts.ts"
+];
+const requiredArtifactIds = [
+  "business_request",
+  "clarification",
+  "contract",
+  "task_plan",
+  "proof",
+  "readout"
 ];
 const envFiles = [".env", ".env.local", ".env.development", ".env.production"];
 const failures = [];
@@ -125,6 +134,10 @@ if (!(await exists(typesPath))) {
   failures.push("Missing shared types file: packages/shared/src/types.ts.");
 }
 
+if (!(await exists(appPath))) {
+  failures.push("Missing frontend app file: apps/web/src/App.tsx.");
+}
+
 if (!(await exists(apiEntryPath))) {
   failures.push("Missing built API entry: apps/api/dist/main.js. Run npm run api:build first.");
 }
@@ -136,6 +149,28 @@ if (!(await exists(webDistHtmlPath))) {
 for (const envFile of envFiles) {
   if (await exists(path.join(rootDir, envFile))) {
     failures.push(`Unexpected env file present: ${envFile}.`);
+  }
+}
+
+if (await exists(demoArtifactsPath)) {
+  const demoArtifactsSource = await readFile(demoArtifactsPath, "utf8");
+
+  for (const artifactId of requiredArtifactIds) {
+    if (!demoArtifactsSource.includes(`id: "${artifactId}"`)) {
+      failures.push(`apps/web/src/demoArtifacts.ts is missing artifact id ${artifactId}.`);
+    }
+  }
+}
+
+if (await exists(appPath)) {
+  const appSource = await readFile(appPath, "utf8");
+
+  if (!appSource.includes('from "./demoArtifacts.js"')) {
+    failures.push("apps/web/src/App.tsx does not import demoArtifacts.");
+  }
+
+  if (!appSource.includes("Goalrail artifacts")) {
+    failures.push("apps/web/src/App.tsx does not expose the Goalrail artifacts UI label.");
   }
 }
 

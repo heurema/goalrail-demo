@@ -40,11 +40,12 @@
 - “Это и есть before-state, который бизнес хочет поменять.”
 - “Я здесь специально не нажимаю approve — мне важно сначала показать сам дефект процесса.”
 
-### Шаг 3 — Goalrail flow overlay
+### Шаг 3 — Goalrail artifacts panel
 
 Что показать:
-- `Goalrail flow`
-- шесть шагов и artifact paths
+- `Goalrail artifacts`
+- шесть артефактных вкладок прямо внутри UI
+- presenter cue и artifact path metadata
 
 Что говорить:
 - “Мы продаём не магию, а operating flow: сначала понятный request, потом clarification, contract, tasks, proof, readout.”
@@ -75,12 +76,13 @@
 
 ### Шаг 6 — proof
 
-Что открыть:
-- `demo/proof-packs/workflow-change/proof-sample.md`
-- `demo/proof-packs/workflow-change/readout-sample.md`
+Что показать:
+- вкладку `Proof`
+- `Current evidence`
+- вкладку `Pilot readout`
 
 Что говорить:
-- “Ценность здесь не только в change itself, а в том, что change заканчивается проверяемым proof и честным readout.”
+- “Ценность здесь не только в change itself, а в том, что change заканчивается проверяемым proof и честным readout прямо в интерфейсе.”
 
 ### Шаг 7 — CTA
 
@@ -97,7 +99,7 @@
 - baseline warning: direct approval enabled
 - visible manual review step
 - actor / owner / reason in audit evidence
-- proof sample и readout sample как конечные артефакты
+- in-app Goalrail artifacts viewer как единый cockpit для request → proof → readout
 
 ## 5. Чего избегать
 
@@ -116,8 +118,8 @@
 Если что-то идёт шумно:
 - не импровизировать новые фичи
 - оставить UI как есть
-- открыть flow overlay
-- открыть proof sample и readout sample
+- открыть Goalrail artifacts
+- markdown открывать только как fallback
 
 Фраза:
 
@@ -129,6 +131,7 @@
 - Не перегружать audience деталями implementation.
 - Показывать before/after контраст.
 - Закрывать разговор pilot CTA, а не платформой.
+- В обычном golden path не выходить из браузера.
 
 ## 8. Fallback ports
 

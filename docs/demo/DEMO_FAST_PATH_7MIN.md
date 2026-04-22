@@ -21,8 +21,7 @@ npm run smoke
 Open:
 - Web UI: `http://127.0.0.1:5173`
 - Fallback Web UI: `http://127.0.0.1:5174`
-- Proof sample: `demo/proof-packs/workflow-change/proof-sample.md`
-- Readout sample: `demo/proof-packs/workflow-change/readout-sample.md`
+- Keep markdown artifacts available only as fallback/reference
 
 Fallback start if default ports are busy:
 
@@ -45,17 +44,17 @@ API_PORT=4411 WEB_PORT=5174 npm run dev
 - Do **not** click approve in baseline mode
 - Explain: this is the deliberate before-state weakness
 
-## 4. Open the Goalrail flow overlay
+## 4. Open the Goalrail artifacts panel
 
-- Click `Goalrail flow`
-- Walk the chain quickly:
+- Click `Goalrail artifacts`
+- Walk the in-app tabs quickly:
   - Business request
   - Clarification
   - Working contract
   - Bounded task plan
   - Inspectable proof
   - Pilot readout
-- Call out the artifact paths in the overlay so the audience sees this is inspectable, not hand-wavy
+- Call out the presenter cue and artifact path metadata so the audience sees this is inspectable, not hand-wavy
 
 ## 5. Switch to Goalrail mode
 
@@ -93,15 +92,16 @@ API_PORT=4411 WEB_PORT=5174 npm run dev
   - timestamp
 - Point to the dashboard/filter reflecting `Manual review`
 
-## 10. Open proof sample and readout sample
+## 10. Stay in the UI for proof and readout
 
-Open:
-- `demo/proof-packs/workflow-change/proof-sample.md`
-- `demo/proof-packs/workflow-change/readout-sample.md`
+- Keep `Goalrail artifacts` open
+- Go to `Proof`
+- Show the `Current evidence` card next to the proof summary
+- Then switch to `Pilot readout`
 
 Say:
 - “The point is not only that the behavior changed.”
-- “The point is that the change ends with inspectable proof and a pilot-style readout.”
+- “The point is that the change ends with inspectable proof and a pilot-style readout without leaving the browser.”
 
 ## 11. CTA
 
@@ -112,3 +112,11 @@ Use a short close:
 Optional follow-up line:
 
 > If this matches your delivery pain, the next step is a bounded pilot, not a broad rollout.
+
+## Fallback only
+
+Do **not** open proof/readout markdown during the normal demo.
+
+Use markdown only if the UI breaks:
+- `demo/proof-packs/workflow-change/proof-sample.md`
+- `demo/proof-packs/workflow-change/readout-sample.md`

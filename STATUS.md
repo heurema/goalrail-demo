@@ -14,29 +14,30 @@
 - Keep the executable demo bounded to one useful workflow-change story
 - Preserve the baseline weakness in `baseline` mode
 - Show the Goalrail after-state in `goalrail` mode with `manual_review`, owner, reason, and audit evidence
-- Make tomorrow's presenter route obvious without reading internal notes live
+- Keep tomorrow's golden path fully inside the browser with an in-app artifact viewer
 
 ## Recent achievements
 
 - Added switchable demo mode so before/after can be shown in one running app
 - Implemented the local deterministic `manual_review` runtime workflow for the Goalrail slice
-- Added flow overlay data, proof sample, readout sample, and a 7-minute fast path script
+- Replaced the simple flow overlay with a full in-app Goalrail artifact workspace
+- Added dynamic Current evidence so proof/readout can be shown next to live request evidence
 - Extended smoke coverage to validate baseline direct approval and Goalrail review-gated approval
 
 ## Next steps
 
-1. Run one full human dry run with the new baseline → Goalrail switch
-2. Tighten copy only if any presenter step still feels noisy
-3. Decide whether tomorrow's demo should run from this branch or after merge
+1. Run one final human rehearsal of the UI-only golden path
+2. Decide whether a tiny recovery preset helper is still needed after the UI-only route
+3. Avoid any new product expansion unless a real demo risk appears
 
 ## Open questions
 
-- Whether to keep this slice on a dedicated demo branch for the presentation or merge before the meeting
-- Whether future follow-up should add a seeded `manual_review` example for zero-click visuals, or keep the live transition as the proof moment
+- Whether a minimal presenter recovery preset is needed, or whether `npm run reset` plus the artifact viewer is already enough
+- Whether tomorrow's room benefits from showing one validation failure path live, or only the happy path
 
 ## Demo boundaries
 
-- In scope: `manual_review` before approval, demo mode switch, visible review requirements, dashboard visibility, audit evidence, proof/readout artifacts, presenter docs, deterministic smoke
+- In scope: `manual_review` before approval, demo mode switch, visible review requirements, dashboard visibility, audit evidence, in-app artifact viewer, presenter docs, deterministic smoke
 - Out of scope: auth, permissions, notifications, policy profiles, workflow engine abstraction, database migration, broader lifecycle redesign
 
 ## Key demo files
