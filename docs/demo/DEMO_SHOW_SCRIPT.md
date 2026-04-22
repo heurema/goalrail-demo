@@ -28,8 +28,11 @@ npm run smoke
 
 Open:
 - Web UI: `http://127.0.0.1:5173`
+- Russian Web UI: `http://127.0.0.1:5173/ru`
 - Fast path script: `docs/demo/DEMO_FAST_PATH_7MIN.md`
 - Markdown artifacts only as fallback/reference
+
+For Russian-speaking rooms, run the same UI-only route on `/ru`.
 
 ## What this demo is and is not
 

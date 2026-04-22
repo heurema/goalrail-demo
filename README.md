@@ -54,6 +54,7 @@ Default API URL:
 
 Default Web URL:
 - `http://127.0.0.1:5173`
+- Russian UI: `http://127.0.0.1:5173/ru`
 
 ## Repo intent
 
@@ -144,6 +145,7 @@ npm run dev
 ## Demo artifacts
 
 - live demo artifact viewer: open `Goalrail artifacts` in the web UI
+- Russian live-demo route: open `/ru` for a Russian-localized UI (`http://127.0.0.1:5173/ru` or fallback `http://127.0.0.1:5174/ru`)
 - primary scenario: `workflow-change`
 - proof pack: `demo/proof-packs/workflow-change/`
 - proof sample: `demo/proof-packs/workflow-change/proof-sample.md` (source/reference fallback)
@@ -155,4 +157,5 @@ npm run dev
 - Russian presenter notes: `docs/demo/DEMO_PRESENTER_NOTES_RU.md`
 
 Normal golden path for the live demo is UI-only.
+For Russian-speaking audiences, use the same golden path on `/ru` so the presenter stays inside one browser UI.
 Markdown files remain available as fallback/reference if the UI becomes noisy.

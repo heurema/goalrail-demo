@@ -284,6 +284,14 @@ a {
   background: var(--panel);
 }
 
+.locale-switcher {
+  margin-left: auto;
+}
+
+.locale-switcher + .demo-mode-switcher {
+  margin-left: 0;
+}
+
 .demo-mode-label {
   font-size: 11px;
   color: var(--ink-4);

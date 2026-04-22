@@ -16,6 +16,7 @@ const auditLogRuntimePath = path.join(runtimeDir, "audit-log.json");
 const demoModeRuntimePath = path.join(runtimeDir, "demo-mode.json");
 const typesPath = path.join(rootDir, "packages", "shared", "src", "types.ts");
 const appPath = path.join(rootDir, "apps", "web", "src", "App.tsx");
+const localePath = path.join(rootDir, "apps", "web", "src", "locale.ts");
 const apiEntryPath = path.join(rootDir, "apps", "api", "dist", "main.js");
 const webDistHtmlPath = path.join(rootDir, "apps", "web", "dist", "index.html");
 const demoArtifactsPath = path.join(rootDir, "apps", "web", "src", "demoArtifacts.ts");
@@ -37,7 +38,8 @@ const requiredFiles = [
   "demo/proof-packs/workflow-change/proof-sample.md",
   "demo/proof-packs/workflow-change/readout-sample.md",
   "docs/demo/DEMO_FAST_PATH_7MIN.md",
-  "apps/web/src/demoArtifacts.ts"
+  "apps/web/src/demoArtifacts.ts",
+  "apps/web/src/locale.ts"
 ];
 const requiredArtifactIds = [
   "business_request",
@@ -138,6 +140,10 @@ if (!(await exists(appPath))) {
   failures.push("Missing frontend app file: apps/web/src/App.tsx.");
 }
 
+if (!(await exists(localePath))) {
+  failures.push("Missing locale file: apps/web/src/locale.ts.");
+}
+
 if (!(await exists(apiEntryPath))) {
   failures.push("Missing built API entry: apps/api/dist/main.js. Run npm run api:build first.");
 }
@@ -162,6 +168,18 @@ if (await exists(demoArtifactsPath)) {
   }
 }
 
+if (await exists(localePath)) {
+  const localeSource = await readFile(localePath, "utf8");
+
+  if (!localeSource.includes('export type AppLocale = "en" | "ru"')) {
+    failures.push("apps/web/src/locale.ts does not declare en/ru locales.");
+  }
+
+  if (!localeSource.includes('pathname === "/ru"') && !localeSource.includes('startsWith("/ru/")')) {
+    failures.push("apps/web/src/locale.ts does not resolve the /ru path.");
+  }
+}
+
 if (await exists(appPath)) {
   const appSource = await readFile(appPath, "utf8");
 
@@ -169,8 +187,16 @@ if (await exists(appPath)) {
     failures.push("apps/web/src/App.tsx does not import demoArtifacts.");
   }
 
-  if (!appSource.includes("Goalrail artifacts")) {
-    failures.push("apps/web/src/App.tsx does not expose the Goalrail artifacts UI label.");
+  if (!appSource.includes('from "./locale.js"')) {
+    failures.push("apps/web/src/App.tsx does not import locale helpers.");
+  }
+
+  if (!appSource.includes("LanguageToggle")) {
+    failures.push("apps/web/src/App.tsx does not expose the locale switcher.");
+  }
+
+  if (!appSource.includes("getPathForLocale")) {
+    failures.push("apps/web/src/App.tsx does not route locale changes to /ru.");
   }
 }
 

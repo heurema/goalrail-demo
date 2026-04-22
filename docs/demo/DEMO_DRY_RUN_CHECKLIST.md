@@ -30,6 +30,7 @@ npm run smoke
 - [ ] Web starts on `http://127.0.0.1:5173`
 - [ ] UI loads in the browser
 - [ ] Demo mode defaults to **Baseline**
+- [ ] Russian route also loads on `/ru`
 - [ ] Fallback run is known if default ports are busy: `API_PORT=4411 WEB_PORT=5174 npm run dev`
 
 ## Baseline / before-state checklist
@@ -44,6 +45,7 @@ npm run smoke
 ## Goalrail / after-state checklist
 
 - [ ] `Goalrail artifacts` button opens the artifact workspace
+- [ ] On `/ru`, the artifact workspace and runtime UI copy are translated for a Russian-speaking audience
 - [ ] Switching to **Goalrail slice** works without reload
 - [ ] Goalrail banner appears
 - [ ] `Send to manual review` is visible for intake requests
@@ -69,6 +71,7 @@ npm run smoke
 
 - [ ] If UI becomes noisy, continue with the Goalrail artifacts panel first
 - [ ] Open markdown artifacts only if the UI becomes unusable
+- [ ] If presenting in Russian, keep the browser on `/ru` for the whole route
 - [ ] If smoke was run recently, `npm run reset` before the meeting
 - [ ] Keep the message focused on bounded flow, not automation theatrics
 
