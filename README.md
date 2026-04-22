@@ -23,7 +23,7 @@ What exists now:
 - demo-ready React/Web UI
 - switchable demo workflow mode: `baseline` or `goalrail`
 - local `manual_review` runtime workflow for the Goalrail slice
-- in-app Goalrail artifact viewer for request, clarification, contract, task plan, proof, and readout
+- in-app buyer-facing Goalrail flow panel for request, clarification, contract, task plan, proof, and readout
 - shared demo types
 - fake seed data
 - deterministic reset and smoke scripts
@@ -144,7 +144,7 @@ npm run dev
 
 ## Demo artifacts
 
-- live demo artifact viewer: open `Goalrail artifacts` in the web UI
+- live demo flow panel: open `Goalrail flow` in the web UI
 - Russian live-demo route: open `/ru` for a Russian-localized UI (`http://127.0.0.1:5173/ru` or fallback `http://127.0.0.1:5174/ru`)
 - primary scenario: `workflow-change`
 - proof pack: `demo/proof-packs/workflow-change/`
@@ -156,6 +156,7 @@ npm run dev
 - dry-run checklist: `docs/demo/DEMO_DRY_RUN_CHECKLIST.md`
 - Russian presenter notes: `docs/demo/DEMO_PRESENTER_NOTES_RU.md`
 
-Normal golden path for the live demo is UI-only.
+Normal golden path for the live demo is UI-only and buyer-facing.
 For Russian-speaking audiences, use the same golden path on `/ru` so the presenter stays inside one browser UI.
+Presenter notes stay in docs, not in the normal UI.
 Markdown files remain available as fallback/reference if the UI becomes noisy.

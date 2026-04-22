@@ -423,7 +423,7 @@ const getDefaultReasonForStatus = (
   if (workflowMode === "goalrail") {
     switch (targetStatus) {
       case "qualified":
-        return "Qualified for the Goalrail slice. Ready for manual review before provisioning.";
+        return "Qualified for the review-gated flow. Ready for manual review before provisioning.";
       case "manual_review":
         return "Ready for manual review before provisioning. Approval is blocked until review is complete.";
       case "approved":
@@ -688,7 +688,7 @@ const buildTimeline = (
               : "Approved directly in the baseline flow."
             : locale === "ru"
               ? "Одобрено после manual review в срезе Goalrail."
-              : "Approved after manual review in the Goalrail slice."
+              : "Approved after manual review in the review-gated flow."
           : item.status === "manual_review"
             ? locale === "ru"
               ? "Переведено в manual review перед approval."
@@ -1621,9 +1621,6 @@ export default function App() {
                             {copy.openReadoutInUi}
                           </button>
                         </div>
-                        <div className="artifact-fallback-note">
-                          {copy.markdownFallbackOnly}
-                        </div>
                       </div>
                     ) : (
                       <div className="form">
@@ -1968,13 +1965,9 @@ function GoalrailArtifactPanel(props: {
             </div>
 
             <div className="artifact-detail-meta">
-              <div className="artifact-presenter-cue">
-                <span>{props.copy.presenterCue}</span>
-                <b>{activeArtifact.presenterNote}</b>
-              </div>
-              <div className="artifact-source-meta">
-                <span>{props.copy.sourceArtifact}</span>
-                <code>{activeArtifact.artifactPath}</code>
+              <div className="artifact-callout-card">
+                <span>{activeArtifact.callout.label}</span>
+                <b>{activeArtifact.callout.text}</b>
               </div>
             </div>
 
@@ -2034,7 +2027,7 @@ function ArtifactNav(props: {
               {formatArtifactStatus(artifact.status, props.locale)}
             </span>
           </div>
-          <div className="artifact-nav-note">{artifact.presenterNote}</div>
+          <div className="artifact-nav-note">{artifact.subtitle}</div>
         </button>
       ))}
     </nav>

@@ -6,7 +6,7 @@
 - [ ] No unexpected local changes beyond planned demo files
 - [ ] Ports `4311` and `5173` are free
 - [ ] Terminal windows are ready
-- [ ] Goalrail artifacts viewer is part of the planned live path
+- [ ] Goalrail flow is part of the planned live path
 
 ## App startup checklist
 
@@ -29,13 +29,13 @@ npm run smoke
 - [ ] API starts on `http://127.0.0.1:4311`
 - [ ] Web starts on `http://127.0.0.1:5173`
 - [ ] UI loads in the browser
-- [ ] Demo mode defaults to **Baseline**
+- [ ] Workflow profile defaults to **Baseline flow**
 - [ ] Russian route also loads on `/ru`
 - [ ] Fallback run is known if default ports are busy: `API_PORT=4411 WEB_PORT=5174 npm run dev`
 
 ## Baseline / before-state checklist
 
-- [ ] Top-bar demo mode switcher is visible
+- [ ] Top-bar workflow profile switcher is visible
 - [ ] Dashboard counts are visible
 - [ ] `Manual review` card/filter exists (count may be `0`)
 - [ ] Selecting a qualified request opens detail
@@ -44,9 +44,9 @@ npm run smoke
 
 ## Goalrail / after-state checklist
 
-- [ ] `Goalrail artifacts` button opens the artifact workspace
+- [ ] `Goalrail flow` button opens the workflow package
 - [ ] On `/ru`, the artifact workspace and runtime UI copy are translated for a Russian-speaking audience
-- [ ] Switching to **Goalrail slice** works without reload
+- [ ] Switching to **Review-gated flow** works without reload
 - [ ] Goalrail banner appears
 - [ ] `Send to manual review` is visible for intake requests
 - [ ] Manual review status chip/filter/count is visible
@@ -64,12 +64,13 @@ npm run smoke
 - [ ] Proof tab renders in the UI
 - [ ] Readout tab renders in the UI
 - [ ] Current evidence card updates after a workflow transition
+- [ ] No presenter hints or file paths are visible in the normal UI
 - [ ] `docs/demo/DEMO_FAST_PATH_7MIN.md` is accessible during the demo
 - [ ] Markdown artifacts remain available only as fallback/reference
 
 ## Failure fallback checklist
 
-- [ ] If UI becomes noisy, continue with the Goalrail artifacts panel first
+- [ ] If UI becomes noisy, continue with the Goalrail flow panel first
 - [ ] Open markdown artifacts only if the UI becomes unusable
 - [ ] If presenting in Russian, keep the browser on `/ru` for the whole route
 - [ ] If smoke was run recently, `npm run reset` before the meeting

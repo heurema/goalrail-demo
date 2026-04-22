@@ -44,8 +44,10 @@ export interface DemoArtifact {
   title: string;
   subtitle: string;
   status: DemoArtifactStatus;
-  artifactPath: string;
-  presenterNote: string;
+  callout: {
+    label: string;
+    text: string;
+  };
   sections: DemoArtifactSection[];
   tables?: DemoArtifactTable[];
   cards?: DemoArtifactCard[];
@@ -69,9 +71,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "The workflow change starts as a clear commercial request, not as platform redesign.",
       status: "prepared",
-      artifactPath: "demo/proof-packs/workflow-change/business-request.md",
-      presenterNote:
-        "Start with the plain-language request and show that the weakness is business-visible before any code exists.",
+      callout: {
+        label: "Why it matters",
+        text: "Approval already has commercial impact, but workflow control is still too weak."
+      },
       sections: [
         {
           title: "Raw request",
@@ -114,9 +117,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "The demo stays believable because the request is clarified before implementation starts.",
       status: "clarified",
-      artifactPath: "demo/proof-packs/workflow-change/clarification-questions.md",
-      presenterNote:
-        "Use this tab to show that Goalrail is about clarification and boundedness, not just coding faster.",
+      callout: {
+        label: "Key point",
+        text: "Ambiguity is resolved before implementation starts."
+      },
       sections: [
         {
           title: "Workflow",
@@ -162,9 +166,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "The contract makes scope, proof, and non-goals explicit before changing runtime behavior.",
       status: "bounded",
-      artifactPath: "demo/proof-packs/workflow-change/contract-draft.md",
-      presenterNote:
-        "Point out that the contract prevents scope creep and keeps the story tied to one workflow-change request.",
+      callout: {
+        label: "Decision boundary",
+        text: "This slice changes the review flow, not the whole workflow engine."
+      },
       sections: [
         {
           title: "Goal",
@@ -215,9 +220,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "Execution is decomposed into a few bounded tasks rather than a broad architecture rewrite.",
       status: "bounded",
-      artifactPath: "demo/proof-packs/workflow-change/task-plan.md",
-      presenterNote:
-        "Show that the work is sliced into a small plan with acceptance and risk, not a vague backlog blob.",
+      callout: {
+        label: "Execution shape",
+        text: "The work is split into four bounded tasks instead of one vague request."
+      },
       sections: [
         {
           title: "Plan intent",
@@ -246,15 +252,15 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
           title: "WF-03 — Frontend controls and dashboard",
           bullets: [
             "Scope: expose mode toggle, manual review controls, counts, filters, and audit visibility.",
-            "Acceptance: presenter can show before/after in one running app.",
+            "Acceptance: the before/after workflow change is visible in one running app.",
             "Risk: UI noise would hide the workflow change instead of clarifying it."
           ]
         },
         {
-          title: "WF-04 — Smoke, proof, and presenter docs",
+          title: "WF-04 — Smoke, proof, and rollout guidance",
           bullets: [
-            "Scope: extend smoke, proof, readout, and presenter instructions to match the implemented slice.",
-            "Acceptance: checks stay deterministic and the presenter does not invent proof live.",
+            "Scope: extend smoke, proof, readout, and demo guidance to match the implemented slice.",
+            "Acceptance: checks stay deterministic and the proof story stays explicit during the demo.",
             "Risk: weak artifacts would make the change look unverified."
           ]
         }
@@ -267,9 +273,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "The proof compresses what changed, what passed, and what the selected request now proves live.",
       status: "proof-ready",
-      artifactPath: "demo/proof-packs/workflow-change/proof-sample.md",
-      presenterNote:
-        "Use this tab after moving into review and again after approval; the Current evidence card ties the artifact to the live request.",
+      callout: {
+        label: "Acceptance basis",
+        text: "The result is accepted on evidence, not on someone saying done."
+      },
       sections: [
         {
           title: "What changed",
@@ -353,9 +360,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "The readout closes the demo with an honest recommendation instead of a platform overclaim.",
       status: "decision-ready",
-      artifactPath: "demo/proof-packs/workflow-change/readout-sample.md",
-      presenterNote:
-        "End here: the point is one visible flow to proof, not a promise that the whole platform is already built.",
+      callout: {
+        label: "Pilot decision",
+        text: "Expand, stabilize, or stop based on visible evidence from one bounded slice."
+      },
       sections: [
         {
           title: "Summary",
@@ -420,9 +428,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "Workflow change начинается как понятный коммерческий запрос, а не как platform redesign.",
       status: "prepared",
-      artifactPath: "demo/proof-packs/workflow-change/business-request.md",
-      presenterNote:
-        "Начните с plain-language запроса и покажите, что слабое место видно бизнесу ещё до любого кода.",
+      callout: {
+        label: "Почему это важно",
+        text: "Одобрение уже влияет на коммерчески значимый процесс, но workflow-control всё ещё слишком слабый."
+      },
       sections: [
         {
           title: "Исходный запрос",
@@ -465,9 +474,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "Демо остаётся убедительным, потому что запрос явно уточняется до implementation.",
       status: "clarified",
-      artifactPath: "demo/proof-packs/workflow-change/clarification-questions.md",
-      presenterNote:
-        "Эта вкладка показывает, что Goalrail — это про clarification и boundedness, а не только про быстрый coding.",
+      callout: {
+        label: "Ключевая мысль",
+        text: "Неопределённость снимается до начала implementation."
+      },
       sections: [
         {
           title: "Workflow",
@@ -513,9 +523,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "Контракт заранее фиксирует scope, proof и non-goals до изменения runtime behavior.",
       status: "bounded",
-      artifactPath: "demo/proof-packs/workflow-change/contract-draft.md",
-      presenterNote:
-        "Подчеркните, что контракт режет scope creep и удерживает историю вокруг одного workflow-change запроса.",
+      callout: {
+        label: "Граница решения",
+        text: "Этот slice меняет review flow, а не весь workflow engine."
+      },
       sections: [
         {
           title: "Цель",
@@ -566,9 +577,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "Execution разложен на несколько bounded tasks, а не на широкий architecture rewrite.",
       status: "bounded",
-      artifactPath: "demo/proof-packs/workflow-change/task-plan.md",
-      presenterNote:
-        "Покажите, что работа нарезана на маленький план с acceptance и risk, а не на vague backlog blob.",
+      callout: {
+        label: "Форма исполнения",
+        text: "Работа разбита на четыре bounded task вместо одного расплывчатого запроса."
+      },
       sections: [
         {
           title: "Замысел плана",
@@ -597,15 +609,15 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
           title: "WF-03 — Frontend controls и dashboard",
           bullets: [
             "Scope: показать mode toggle, manual review controls, counts, filters и audit visibility.",
-            "Acceptance: презентер может показать before/after в одном запущенном приложении.",
+            "Acceptance: before/after изменение workflow видно в одном запущенном приложении.",
             "Risk: UI noise скроет workflow change вместо того, чтобы сделать его очевидным."
           ]
         },
         {
-          title: "WF-04 — Smoke, proof и presenter docs",
+          title: "WF-04 — Smoke, proof и guidance",
           bullets: [
-            "Scope: расширить smoke, proof, readout и presenter instructions под реализованный slice.",
-            "Acceptance: checks остаются детерминированными, а презентер не выдумывает proof на ходу.",
+            "Scope: расширить smoke, proof, readout и demo guidance под реализованный slice.",
+            "Acceptance: checks остаются детерминированными, а proof story остаётся явной во время демо.",
             "Risk: слабые артефакты сделают change неподтверждённым."
           ]
         }
@@ -618,9 +630,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "Proof сжимает в один экран: что изменилось, что прошло, и что живая заявка доказывает прямо сейчас.",
       status: "proof-ready",
-      artifactPath: "demo/proof-packs/workflow-change/proof-sample.md",
-      presenterNote:
-        "Используйте эту вкладку после перехода в review и ещё раз после approval; Current evidence связывает артефакт с живой заявкой.",
+      callout: {
+        label: "Основание приёмки",
+        text: "Результат принимается по evidence, а не по словам «done»."
+      },
       sections: [
         {
           title: "Что изменилось",
@@ -704,9 +717,10 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
       subtitle:
         "Readout завершает демо честной рекомендацией, а не platform overclaim.",
       status: "decision-ready",
-      artifactPath: "demo/proof-packs/workflow-change/readout-sample.md",
-      presenterNote:
-        "Заканчивайте здесь: смысл в одном видимом flow до proof, а не в обещании, что вся платформа уже готова.",
+      callout: {
+        label: "Решение по пилоту",
+        text: "Expand, stabilize или stop принимаются на основе видимого evidence по одному bounded slice."
+      },
       sections: [
         {
           title: "Summary",
@@ -767,4 +781,3 @@ const demoArtifactsByLocale: Record<AppLocale, DemoArtifact[]> = {
 
 export const getDemoArtifacts = (locale: AppLocale): DemoArtifact[] =>
   demoArtifactsByLocale[locale];
-
