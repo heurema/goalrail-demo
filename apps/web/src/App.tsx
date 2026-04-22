@@ -11,13 +11,22 @@ import {
 } from "./api.js";
 import {
   demoArtifactOrder,
-  demoArtifacts,
+  getDemoArtifacts,
   type DemoArtifact,
   type DemoArtifactCard,
   type DemoArtifactKind,
   type DemoArtifactSection,
   type DemoArtifactTable
 } from "./demoArtifacts.js";
+import {
+  artifactStatusTitles,
+  getIntlLocale,
+  getLocaleFromPath,
+  getPathForLocale,
+  statusTitles,
+  type AppLocale,
+  uiCopy
+} from "./locale.js";
 import type {
   AuditEvent,
   DemoWorkflowMode,
@@ -79,18 +88,6 @@ const statusFilterOptions: StatusFilter[] = [
   "rejected"
 ];
 
-const metricMeta: Record<
-  "total" | TrialRequestStatus,
-  { delta: string; window: string; tone: MetricTone }
-> = {
-  total: { delta: "+4.1%", window: "7d", tone: "up" },
-  new: { delta: "+18%", window: "24h", tone: "up" },
-  qualified: { delta: "+2.3%", window: "7d", tone: "flat" },
-  manual_review: { delta: "review gate", window: "active", tone: "flat" },
-  approved: { delta: "+6.8%", window: "7d", tone: "up" },
-  rejected: { delta: "−1.4%", window: "7d", tone: "down" }
-};
-
 const statusClassNames: Record<TrialRequestStatus, string> = {
   new: "s-new",
   qualified: "s-qual",
@@ -99,42 +96,65 @@ const statusClassNames: Record<TrialRequestStatus, string> = {
   rejected: "s-rejected"
 };
 
-const metricLabels: Array<{ key: "total" | TrialRequestStatus; label: string }> = [
-  { key: "total", label: "Total" },
-  { key: "new", label: "New" },
-  { key: "qualified", label: "Qualified" },
-  { key: "manual_review", label: "Manual review" },
-  { key: "approved", label: "Approved" },
-  { key: "rejected", label: "Rejected" }
-];
+const getMetricMeta = (
+  locale: AppLocale
+): Record<"total" | TrialRequestStatus, { delta: string; window: string; tone: MetricTone }> => {
+  const copy = uiCopy[locale];
 
-const formatStatusLabel = (value: TrialRequestStatus): string =>
-  value.replace("_", " ");
+  return {
+    total: { delta: "+4.1%", window: locale === "ru" ? "7д" : "7d", tone: "up" },
+    new: { delta: "+18%", window: locale === "ru" ? "24ч" : "24h", tone: "up" },
+    qualified: { delta: "+2.3%", window: locale === "ru" ? "7д" : "7d", tone: "flat" },
+    manual_review: {
+      delta: copy.metricReviewGate,
+      window: copy.metricActive,
+      tone: "flat"
+    },
+    approved: { delta: "+6.8%", window: locale === "ru" ? "7д" : "7d", tone: "up" },
+    rejected: { delta: "−1.4%", window: locale === "ru" ? "7д" : "7d", tone: "down" }
+  };
+};
 
-const formatStatusTitle = (value: TrialRequestStatus): string =>
-  value
-    .split("_")
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
+const getMetricLabels = (
+  locale: AppLocale
+): Array<{ key: "total" | TrialRequestStatus; label: string }> => {
+  const copy = uiCopy[locale];
+
+  return [
+    { key: "total", label: copy.metricTotal },
+    { key: "new", label: copy.metricNew },
+    { key: "qualified", label: copy.metricQualified },
+    { key: "manual_review", label: copy.metricManualReview },
+    { key: "approved", label: copy.metricApproved },
+    { key: "rejected", label: copy.metricRejected }
+  ];
+};
+
+const formatStatusLabel = (value: TrialRequestStatus, locale: AppLocale): string =>
+  statusTitles[locale][value].toLowerCase();
+
+const formatStatusTitle = (value: TrialRequestStatus, locale: AppLocale): string =>
+  statusTitles[locale][value];
 
 const formatRequestCode = (value: string): string => {
   const digits = value.replace(/\D/g, "").padStart(3, "0");
   return `TR-${digits}`;
 };
 
-const formatCount = (value: number): string =>
-  new Intl.NumberFormat("en-US").format(value);
+const formatCount = (value: number, locale: AppLocale): string =>
+  new Intl.NumberFormat(getIntlLocale(locale)).format(value);
 
-const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat("en-US", {
+const formatCurrency = (value: number, locale: AppLocale): string =>
+  new Intl.NumberFormat(getIntlLocale(locale), {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0
   }).format(value);
 
-const formatAuditTime = (value: string): string => {
+const formatAuditTime = (value: string, locale: AppLocale): string => {
   const timestamp = new Date(value);
-  const timeLabel = timestamp.toLocaleTimeString("en-GB", {
+  const copy = uiCopy[locale];
+  const timeLabel = timestamp.toLocaleTimeString(locale === "ru" ? "ru-RU" : "en-GB", {
     hour: "2-digit",
     minute: "2-digit"
   });
@@ -145,32 +165,46 @@ const formatAuditTime = (value: string): string => {
     timestamp.getFullYear() === now.getFullYear();
 
   if (isToday) {
-    return `Today · ${timeLabel}`;
+    return `${copy.today} · ${timeLabel}`;
   }
 
-  const dateLabel = timestamp.toLocaleDateString("en-GB", {
+  const dateLabel = timestamp.toLocaleDateString(
+    locale === "ru" ? "ru-RU" : "en-GB",
+    {
     day: "2-digit",
     month: "short"
-  });
+    }
+  );
 
   return `${dateLabel} · ${timeLabel}`;
 };
 
-const formatAge = (value: string): string => {
+const formatAge = (value: string, locale: AppLocale): string => {
   const createdAt = new Date(value).getTime();
   const diffMs = Math.max(0, Date.now() - createdAt);
   const diffMinutes = Math.max(1, Math.floor(diffMs / 60_000));
+  const copy = uiCopy[locale];
 
   if (diffMinutes < 60) {
-    return `${diffMinutes}m`;
+    return `${diffMinutes}${copy.minutesShort}`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours}h`;
+    return `${diffHours}${copy.hoursShort}`;
   }
 
-  return `${Math.floor(diffHours / 24)}d`;
+  return `${Math.floor(diffHours / 24)}${copy.daysShort}`;
+};
+
+const getTrialLengthOptions = (locale: AppLocale): Array<{ value: string; label: string }> => {
+  const copy = uiCopy[locale];
+
+  return [
+    { value: "30 days", label: copy.days30 },
+    { value: "14 days", label: copy.days14 },
+    { value: "60 days", label: copy.days60 }
+  ];
 };
 
 const addMinutes = (value: string, minutes: number): string =>
@@ -193,78 +227,199 @@ const getSeed = (value: string): number => {
   return Number.isFinite(digits) && digits > 0 ? digits : 1;
 };
 
-const getSource = (item: TrialRequest): string => {
-  const notes = item.notes.join(" ").toLowerCase();
-
-  if (notes.includes("founder network")) {
-    return "founder intro";
-  }
-  if (notes.includes("security questionnaire")) {
-    return "security review";
-  }
-  if (notes.includes("proof artifacts")) {
-    return "sales assisted";
-  }
-  if (notes.includes("live walkthrough")) {
-    return "live demo";
-  }
-  if (notes.includes("deterministic reset")) {
-    return "product-page CTA";
-  }
-  if (notes.includes("pilot window")) {
-    return "pilot handoff";
+const translateRequestNote = (note: string, locale: AppLocale): string => {
+  if (locale === "en") {
+    return note;
   }
 
-  return "website form";
+  const exactNotes: Record<string, string> = {
+    "Asked for a shared onboarding checklist.":
+      "Попросили общий чеклист для onboarding.",
+    "Wants a short implementation estimate before kickoff.":
+      "До kickoff хотят короткую оценку implementation.",
+    "Security questionnaire sent.":
+      "Опросник по безопасности уже отправлен.",
+    "Interested in guided onboarding for two teams later.":
+      "Позже интересует guided onboarding для двух команд.",
+    "Pilot window starts next Monday.":
+      "Окно pilot стартует в следующий понедельник.",
+    "Prefers async status updates.":
+      "Предпочитают асинхронные статус-обновления.",
+    "No active engineering sponsor.":
+      "Нет активного engineering sponsor.",
+    "Asked to revisit in one quarter.":
+      "Попросили вернуться к теме через квартал.",
+    "Needs a compliance-friendly demo path.":
+      "Нужен demo path, удобный для compliance.",
+    "Asks about proof artifacts early.":
+      "Рано спрашивают про proof artifacts.",
+    "Inbound from founder network intro.":
+      "Входящий запрос после intro из founder network.",
+    "Interested in one repo, one case pilot.":
+      "Интересен pilot в формате one repo, one case.",
+    "Completed pilot scoping.":
+      "Pilot scoping завершён.",
+    "Wants proof-oriented readout for leadership.":
+      "Нужен proof-oriented readout для leadership.",
+    "Only one individual buyer, no team sponsor.":
+      "Есть только один individual buyer, но нет team sponsor.",
+    "No repo identified for a pilot case.":
+      "Repo для pilot case не определён.",
+    "Wants a live walkthrough with fake production-like data.":
+      "Нужен live walkthrough на данных, похожих на production.",
+    "May expand to a second repo later.":
+      "Позже могут расшириться на второй repo.",
+    "Needs a clearer example of trial request review flow.":
+      "Нужен более понятный пример trial request review flow.",
+    "Asked for a deterministic reset between demos.":
+      "Попросили deterministic reset между демо."
+  };
+
+  return exactNotes[note] ?? note;
 };
 
-const getTrialPresentation = (item: TrialRequest): TrialPresentation => {
+const getSource = (item: TrialRequest, locale: AppLocale): string => {
+  const notes = item.notes.join(" ").toLowerCase();
+  const copy = uiCopy[locale];
+
+  if (notes.includes("founder network")) {
+    return copy.sourceFounderIntro;
+  }
+  if (notes.includes("security questionnaire")) {
+    return copy.sourceSecurityReview;
+  }
+  if (notes.includes("proof artifacts")) {
+    return copy.sourceSalesAssisted;
+  }
+  if (notes.includes("live walkthrough")) {
+    return copy.sourceLiveDemo;
+  }
+  if (notes.includes("deterministic reset")) {
+    return copy.sourceProductPage;
+  }
+  if (notes.includes("pilot window")) {
+    return copy.sourcePilotHandoff;
+  }
+
+  return copy.sourceWebsiteForm;
+};
+
+const getTrialPresentation = (
+  item: TrialRequest,
+  locale: AppLocale
+): TrialPresentation => {
   const seed = getSeed(item.id);
+  const copy = uiCopy[locale];
 
   if (item.segment === "smb") {
     const seats = 6 + (seed % 6) * 2;
-    const planLabel = seats <= 12 ? "Starter" : "Team";
+    const planLabel = seats <= 12 ? copy.planStarter : copy.planTeam;
     return {
       planLabel,
       seats,
       mrr: seats * 45,
-      region: "Europe · eu-central-1",
-      source: getSource(item),
-      requesterTitle: "Operations lead",
-      trialLength: "14 days"
+      region: `${copy.regionEurope} · eu-central-1`,
+      source: getSource(item, locale),
+      requesterTitle: copy.titleOperationsLead,
+      trialLength: locale === "ru" ? "14 дней" : "14 days"
     };
   }
 
   if (item.segment === "enterprise") {
     const seats = 120 + (seed % 6) * 40;
     return {
-      planLabel: "Enterprise",
+      planLabel: copy.planEnterprise,
       seats,
       mrr: seats * 70,
-      region: "North America · us-east-1",
-      source: getSource(item),
-      requesterTitle: "VP Platform",
-      trialLength: "30 days"
+      region: `${copy.regionNorthAmerica} · us-east-1`,
+      source: getSource(item, locale),
+      requesterTitle: copy.titleVPPlatform,
+      trialLength: locale === "ru" ? "30 дней" : "30 days"
     };
   }
 
   const seats = 24 + (seed % 8) * 8;
   return {
-    planLabel: seed % 2 === 0 ? "Business" : "Team",
+    planLabel: seed % 2 === 0 ? copy.planBusiness : copy.planTeam,
     seats,
     mrr: seats * 60,
-    region: "North America · us-east-2",
-    source: getSource(item),
-    requesterTitle: "Director of Operations",
-    trialLength: "30 days"
+    region: `${copy.regionNorthAmerica} · us-east-2`,
+    source: getSource(item, locale),
+    requesterTitle: copy.titleDirectorOps,
+    trialLength: locale === "ru" ? "30 дней" : "30 days"
   };
 };
 
 const getDefaultReasonForStatus = (
   item: TrialRequest,
   targetStatus: TrialRequestStatus,
-  workflowMode: DemoWorkflowMode
+  workflowMode: DemoWorkflowMode,
+  locale: AppLocale
 ): string => {
+  if (locale === "ru") {
+    if (workflowMode === "goalrail") {
+      switch (targetStatus) {
+        case "qualified":
+          return "Заявка подходит для среза Goalrail. Готова к ручной проверке перед выдачей trial.";
+        case "manual_review":
+          return "Готово к ручной проверке перед выдачей trial. Одобрение заблокировано до завершения проверки.";
+        case "approved":
+          return "Ручная проверка завершена. Ответственный назначен, обоснование решения зафиксировано до одобрения.";
+        case "rejected":
+          return "Ручная проверка завершена. Заявка отклонена с назначенным ответственным и явным обоснованием решения.";
+        case "new":
+        default:
+          return "Вернули в новый статус для ограниченной повторной проверки перед review.";
+      }
+    }
+
+    if (item.segment === "smb") {
+      switch (targetStatus) {
+        case "approved":
+          return "Одобрено в текущем baseline flow. Второй reviewer не требовался.";
+        case "rejected":
+          return "Сейчас это вне рамок текущего pilot.";
+        case "qualified":
+          return "Хорошее попадание в ICP. Домен и базовые требования к onboarding подтверждены.";
+        case "manual_review":
+          return "Ручная проверка не входит в baseline flow.";
+        case "new":
+        default:
+          return "Первичный intake завершён. Ждём квалификацию.";
+      }
+    }
+
+    if (item.segment === "enterprise") {
+      switch (targetStatus) {
+        case "approved":
+          return "Одобрено напрямую по текущей baseline policy для enterprise onboarding.";
+        case "rejected":
+          return "Есть high-touch scope, но пока нет активного sponsor для pilot.";
+        case "qualified":
+          return "Хорошее попадание в ICP. Требования enterprise onboarding уже понятны.";
+        case "manual_review":
+          return "Ручная проверка не входит в baseline flow.";
+        case "new":
+        default:
+          return "Первичный intake зафиксирован. Ожидает review на квалификацию.";
+      }
+    }
+
+    switch (targetStatus) {
+      case "approved":
+        return "Одобрено в текущем baseline flow. Выдачу trial можно запускать сразу.";
+      case "rejected":
+        return "Недостаточно срочно для pilot в этом месяце.";
+      case "qualified":
+        return "Хорошее попадание в ICP. Домен и baseline requirements проверены. Готово к следующему шагу.";
+      case "manual_review":
+        return "Ручная проверка не входит в baseline flow.";
+      case "new":
+      default:
+        return "Первичный intake завершён. Ждём квалификацию.";
+    }
+  }
+
   if (workflowMode === "goalrail") {
     switch (targetStatus) {
       case "qualified":
@@ -331,40 +486,43 @@ const getDefaultReasonForStatus = (
 const getPrimaryActionLabel = (
   currentStatus: TrialRequestStatus,
   targetStatus: TrialRequestStatus,
-  workflowMode: DemoWorkflowMode
+  workflowMode: DemoWorkflowMode,
+  locale: AppLocale
 ): string => {
+  const copy = uiCopy[locale];
+
   if (workflowMode === "goalrail") {
     if (currentStatus === "manual_review" && targetStatus === "approved") {
-      return "Approve after review";
+      return copy.approveAfterReview;
     }
 
     if (currentStatus === "manual_review" && targetStatus === "rejected") {
-      return "Reject after review";
+      return copy.rejectAfterReview;
     }
 
     if (targetStatus === "manual_review") {
-      return "Send to manual review";
+      return copy.sendToManualReview;
     }
 
     if (targetStatus === "qualified") {
-      return "Mark as qualified";
+      return copy.markQualified;
     }
 
-    return "Apply Goalrail decision";
+    return copy.applyGoalrailDecision;
   }
 
   switch (targetStatus) {
     case "approved":
-      return "Approve trial";
+      return locale === "ru" ? copy.approveTrial : "Approve trial";
     case "rejected":
-      return "Save rejection";
+      return copy.saveRejection;
     case "qualified":
-      return "Mark as qualified";
+      return copy.markQualified;
     case "manual_review":
-      return "Manual review unavailable";
+      return copy.manualReviewUnavailable;
     case "new":
     default:
-      return "Return to new";
+      return copy.returnedToNew;
   }
 };
 
@@ -437,12 +595,16 @@ const getSuggestedNextStatus = (
   }
 };
 
-const matchesSearch = (item: TrialRequest, query: string): boolean => {
+const matchesSearch = (
+  item: TrialRequest,
+  query: string,
+  locale: AppLocale
+): boolean => {
   if (!query.trim()) {
     return true;
   }
 
-  const presentation = getTrialPresentation(item);
+  const presentation = getTrialPresentation(item, locale);
   const haystack = [
     item.id,
     formatRequestCode(item.id),
@@ -454,7 +616,7 @@ const matchesSearch = (item: TrialRequest, query: string): boolean => {
     item.status,
     presentation.planLabel,
     presentation.source,
-    ...item.notes
+    ...item.notes.map((note) => translateRequestNote(note, locale))
   ]
     .join(" ")
     .toLowerCase();
@@ -465,9 +627,11 @@ const matchesSearch = (item: TrialRequest, query: string): boolean => {
 const buildTimeline = (
   item: TrialRequest,
   auditItems: AuditEvent[],
-  workflowMode: DemoWorkflowMode
+  workflowMode: DemoWorkflowMode,
+  locale: AppLocale
 ): TimelineEntry[] => {
-  const presentation = getTrialPresentation(item);
+  const copy = uiCopy[locale];
+  const presentation = getTrialPresentation(item, locale);
   const entries: TimelineEntry[] = [
     {
       id: `${item.id}-received`,
@@ -475,8 +639,8 @@ const buildTimeline = (
       kind: "text",
       actor: "system",
       createdAt: item.createdAt,
-      emphasis: "Request received",
-      suffix: ` from ${presentation.source}`
+      emphasis: copy.requestReceived,
+      suffix: `${copy.from}${presentation.source}`
     },
     {
       id: `${item.id}-enrichment`,
@@ -484,7 +648,7 @@ const buildTimeline = (
       kind: "text",
       actor: "system",
       createdAt: addMinutes(item.createdAt, 6),
-      prefix: "Enrichment complete"
+      prefix: copy.enrichmentComplete
     }
   ];
 
@@ -519,10 +683,16 @@ const buildTimeline = (
       note:
         item.status === "approved"
           ? workflowMode === "baseline"
-            ? "Approved directly in the baseline flow."
-            : "Approved after manual review in the Goalrail slice."
+            ? locale === "ru"
+              ? "Одобрено напрямую в baseline flow."
+              : "Approved directly in the baseline flow."
+            : locale === "ru"
+              ? "Одобрено после manual review в срезе Goalrail."
+              : "Approved after manual review in the Goalrail slice."
           : item.status === "manual_review"
-            ? "Moved into manual review before approval."
+            ? locale === "ru"
+              ? "Переведено в manual review перед approval."
+              : "Moved into manual review before approval."
             : undefined
     });
   }
@@ -534,10 +704,9 @@ const buildTimeline = (
       kind: "text",
       actor: "policy.baseline",
       createdAt: addMinutes(item.createdAt, 19),
-      emphasis: "Policy notice",
-      suffix: " · eligible for direct approval",
-      note:
-        "No second reviewer configured — a single operator can approve and provision this trial."
+      emphasis: copy.policyNotice,
+      suffix: copy.eligibleForDirectApproval,
+      note: copy.noSecondReviewerConfigured
     });
   } else {
     entries.push({
@@ -546,10 +715,9 @@ const buildTimeline = (
       kind: "text",
       actor: "policy.goalrail",
       createdAt: addMinutes(item.createdAt, 19),
-      emphasis: "Goalrail slice active",
-      suffix: " · approval requires manual review",
-      note:
-        "Review decisions must show a reviewer actor, assigned owner, and explicit decision reason."
+      emphasis: copy.goalrailSliceActiveTimeline,
+      suffix: copy.approvalRequiresManualReview,
+      note: copy.reviewDecisionsMustShow
     });
   }
 
@@ -560,7 +728,7 @@ const buildTimeline = (
       kind: "text",
       actor: item.owner,
       createdAt: addMinutes(item.createdAt, 21),
-      prefix: "Assigned owner · ",
+      prefix: copy.assignedOwnerPrefix,
       emphasis: item.owner
     });
   }
@@ -571,7 +739,43 @@ const buildTimeline = (
 const isFinalStatus = (status: TrialRequestStatus): boolean =>
   status === "approved" || status === "rejected";
 
+const resolveLocalizedError = (error: unknown, locale: AppLocale): string => {
+  if (error instanceof ApiError && locale === "ru") {
+    switch (error.code) {
+      case "review_required":
+        return "Для approval сначала требуется manual review.";
+      case "owner_required":
+        return "Для review decision нужно указать owner.";
+      case "reason_required":
+        return "Для review decision нужно указать reason.";
+      case "invalid_status":
+        return "Передан недопустимый статус.";
+      case "invalid_actor":
+        return "Reviewer actor обязателен.";
+      case "invalid_reason":
+        return "Reason должен быть непустой строкой.";
+      case "invalid_owner":
+        return "Owner должен быть непустой строкой.";
+      case "invalid_transition":
+        return "Такой переход статуса не разрешён в текущем режиме.";
+      case "not_found":
+        return "Заявка не найдена.";
+      default:
+        return error.message;
+    }
+  }
+
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  return error instanceof Error ? error.message : uiCopy[locale].statusUpdateFailed;
+};
+
 export default function App() {
+  const [locale, setLocale] = useState<AppLocale>(() =>
+    typeof window === "undefined" ? "en" : getLocaleFromPath(window.location.pathname)
+  );
   const [listData, setListData] = useState<TrialRequestsResponse | null>(null);
   const [demoMode, setDemoMode] = useState<DemoWorkflowMode>("baseline");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -593,6 +797,11 @@ export default function App() {
   const [activeArtifactId, setActiveArtifactId] =
     useState<DemoArtifactKind>("business_request");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const copy = uiCopy[locale];
+  const metricMeta = useMemo(() => getMetricMeta(locale), [locale]);
+  const metricLabels = useMemo(() => getMetricLabels(locale), [locale]);
+  const demoArtifacts = useMemo(() => getDemoArtifacts(locale), [locale]);
+  const trialLengthOptions = useMemo(() => getTrialLengthOptions(locale), [locale]);
 
   const refreshRuntime = async (targetId?: string | null) => {
     const [trialRequests, auditLog, modeState] = await Promise.all([
@@ -615,6 +824,21 @@ export default function App() {
   };
 
   useEffect(() => {
+    const onPopState = () => {
+      setLocale(getLocaleFromPath(window.location.pathname));
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title =
+      demoMode === "baseline" ? copy.pageTitleBaseline : copy.pageTitleGoalrail;
+  }, [copy.pageTitleBaseline, copy.pageTitleGoalrail, demoMode, locale]);
+
+  useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
@@ -623,7 +847,7 @@ export default function App() {
         setFeedback({
           kind: "error",
           message:
-            error instanceof Error ? error.message : "Failed to load demo data."
+            error instanceof Error ? error.message : copy.demoDataFailed
         });
       } finally {
         setLoading(false);
@@ -631,7 +855,7 @@ export default function App() {
     };
 
     void load();
-  }, []);
+  }, [copy.demoDataFailed]);
 
   useEffect(() => {
     if (!feedback) {
@@ -652,9 +876,9 @@ export default function App() {
         return false;
       }
 
-      return matchesSearch(item, searchQuery);
+      return matchesSearch(item, searchQuery, locale);
     });
-  }, [listData, searchQuery, statusFilter]);
+  }, [listData, locale, searchQuery, statusFilter]);
 
   useEffect(() => {
     if (!filteredItems.length) {
@@ -684,7 +908,7 @@ export default function App() {
           message:
             error instanceof Error
               ? error.message
-              : "Failed to load request detail."
+              : copy.requestDetailFailed
         });
       } finally {
         setDetailLoading(false);
@@ -692,22 +916,24 @@ export default function App() {
     };
 
     void loadDetail();
-  }, [selectedId]);
+  }, [copy.requestDetailFailed, selectedId]);
 
   useEffect(() => {
     if (!selectedItem) {
       return;
     }
 
-    const presentation = getTrialPresentation(selectedItem);
+    const presentation = getTrialPresentation(selectedItem, locale);
     const suggestedStatus = getSuggestedNextStatus(selectedItem.status, demoMode);
     setNextStatus(suggestedStatus);
     setTrialLength(presentation.trialLength);
     setActor("demo.presenter");
     setOwner(selectedItem.owner ?? "");
-    setReason(getDefaultReasonForStatus(selectedItem, suggestedStatus, demoMode));
+    setReason(
+      getDefaultReasonForStatus(selectedItem, suggestedStatus, demoMode, locale)
+    );
     setReasonDirty(false);
-  }, [selectedItem, demoMode]);
+  }, [selectedItem, demoMode, locale]);
 
   const navCounts = useMemo(() => getTopNavCounts(listData?.meta ?? null), [listData]);
 
@@ -730,19 +956,22 @@ export default function App() {
   }, [selectedAuditItems]);
 
   const selectedPresentation = useMemo(
-    () => (selectedItem ? getTrialPresentation(selectedItem) : null),
-    [selectedItem]
+    () => (selectedItem ? getTrialPresentation(selectedItem, locale) : null),
+    [selectedItem, locale]
   );
 
   const timelineItems = useMemo(
-    () => (selectedItem ? buildTimeline(selectedItem, selectedAuditItems, demoMode) : []),
-    [selectedItem, selectedAuditItems, demoMode]
+    () =>
+      selectedItem
+        ? buildTimeline(selectedItem, selectedAuditItems, demoMode, locale)
+        : [],
+    [selectedItem, selectedAuditItems, demoMode, locale]
   );
 
   const handlePlaceholderAction = (label: string) => {
     setFeedback({
       kind: "info",
-      message: `${label} is not implemented in the deterministic demo.`
+      message: `${label} ${copy.notificationsPlaceholder}`
     });
   };
 
@@ -751,13 +980,29 @@ export default function App() {
       return;
     }
 
-    const currentDefault = getDefaultReasonForStatus(selectedItem, nextStatus, demoMode);
+    const currentDefault = getDefaultReasonForStatus(
+      selectedItem,
+      nextStatus,
+      demoMode,
+      locale
+    );
     setNextStatus(targetStatus);
 
     if (!reasonDirty || reason.trim() === currentDefault.trim()) {
-      setReason(getDefaultReasonForStatus(selectedItem, targetStatus, demoMode));
+      setReason(
+        getDefaultReasonForStatus(selectedItem, targetStatus, demoMode, locale)
+      );
       setReasonDirty(false);
     }
+  };
+
+  const handleLocaleChange = (nextLocale: AppLocale) => {
+    if (nextLocale === locale) {
+      return;
+    }
+
+    window.history.pushState({}, "", getPathForLocale(nextLocale));
+    setLocale(nextLocale);
   };
 
   const handleModeChange = async (mode: DemoWorkflowMode) => {
@@ -778,13 +1023,13 @@ export default function App() {
         kind: "success",
         message:
           mode === "baseline"
-            ? "Baseline mode restored. Direct approval is visible again."
-            : "Goalrail slice active. Approval now requires manual review."
+            ? copy.baselineModeRestored
+            : copy.goalrailModeActive
       });
     } catch (error) {
       setFeedback({
         kind: "error",
-        message: error instanceof Error ? error.message : "Demo mode update failed."
+        message: error instanceof Error ? error.message : copy.demoModeUpdateFailed
       });
     } finally {
       setModeUpdating(false);
@@ -800,12 +1045,13 @@ export default function App() {
       const currentDefaultReason = getDefaultReasonForStatus(
         selectedItem,
         nextStatus,
-        demoMode
+        demoMode,
+        locale
       );
       const submissionReason =
         targetStatus !== nextStatus &&
         (!reasonDirty || reason.trim() === currentDefaultReason.trim())
-          ? getDefaultReasonForStatus(selectedItem, targetStatus, demoMode)
+          ? getDefaultReasonForStatus(selectedItem, targetStatus, demoMode, locale)
           : reason;
 
       setSubmitting(true);
@@ -825,15 +1071,10 @@ export default function App() {
 
       setFeedback({
         kind: "success",
-        message: `${formatRequestCode(selectedItem.id)} updated to ${formatStatusTitle(targetStatus)}.`
+        message: `${formatRequestCode(selectedItem.id)} ${copy.directStatusUpdateSuccess} ${formatStatusTitle(targetStatus, locale)}.`
       });
     } catch (error) {
-      const message =
-        error instanceof ApiError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : "Status update failed.";
+      const message = resolveLocalizedError(error, locale);
 
       setFeedback({
         kind: "error",
@@ -856,41 +1097,50 @@ export default function App() {
 
   return (
     <>
-      <div className="app" data-screen-label="TrialOps Workflow Change Demo">
+      <div className="app" data-screen-label={copy.appScreenLabel}>
         <aside className="sidebar">
           <div className="brand">
             <div className="brand-mark" aria-hidden="true" />
             <div className="brand-name">TrialOps</div>
           </div>
 
-          <nav className="nav" aria-label="Primary navigation">
-            <NavItem label="Inbox" count={navCounts.inbox} />
-            <NavItem label="Trial requests" count={navCounts.trialRequests} active />
-            <NavItem label="Accounts" />
-            <NavItem label="Provisioning" count={navCounts.provisioning} />
+          <nav className="nav" aria-label={copy.primaryNavigation}>
+            <NavItem label={copy.navInbox} count={navCounts.inbox} activeLocale={locale} />
+            <NavItem
+              label={copy.navTrialRequests}
+              count={navCounts.trialRequests}
+              active
+              activeLocale={locale}
+            />
+            <NavItem label={copy.navAccounts} activeLocale={locale} />
+            <NavItem
+              label={copy.navProvisioning}
+              count={navCounts.provisioning}
+              activeLocale={locale}
+            />
           </nav>
 
           <div className="nav-divider" />
 
-          <nav className="nav" aria-label="Operations navigation">
-            <NavItem label="Audit log" />
-            <NavItem label="Policies" />
-            <NavItem label="Proof pack" />
-            <NavItem label="Reports" />
+          <nav className="nav" aria-label={copy.operationsNavigation}>
+            <NavItem label={copy.navAuditLog} activeLocale={locale} />
+            <NavItem label={copy.navPolicies} activeLocale={locale} />
+            <NavItem label={copy.navProofPack} activeLocale={locale} />
+            <NavItem label={copy.navReports} activeLocale={locale} />
           </nav>
 
           <div className="nav-divider" />
 
-          <nav className="nav" aria-label="Admin navigation">
-            <NavItem label="Team" />
-            <NavItem label="Settings" />
+          <nav className="nav" aria-label={copy.adminNavigation}>
+            <NavItem label={copy.navTeam} activeLocale={locale} />
+            <NavItem label={copy.navSettings} activeLocale={locale} />
           </nav>
 
           <div className="sidebar-foot">
             <div className="avatar">MO</div>
             <div className="who">
               <b>M. Ortega</b>
-              <span>Ops · Admin</span>
+              <span>{copy.sidebarRole}</span>
             </div>
           </div>
         </aside>
@@ -903,13 +1153,16 @@ export default function App() {
                 id="trialops-search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search"
+                placeholder={copy.searchPlaceholder}
               />
               <span className="kbd-inline">⌘K</span>
             </label>
 
+            <LanguageToggle locale={locale} onChange={handleLocaleChange} />
+
             <DemoModeToggle
               workflowMode={demoMode}
+              locale={locale}
               disabled={modeUpdating}
               onChange={handleModeChange}
             />
@@ -917,13 +1170,13 @@ export default function App() {
             <div className="top-actions">
               <div className="env-chip">
                 <span className="pulse" aria-hidden="true" />
-                deterministic local demo
+                {copy.envChip}
               </div>
               <button
                 type="button"
                 className="icon-btn"
-                title="Notifications"
-                onClick={() => handlePlaceholderAction("Notifications")}
+                title={copy.notifications}
+                onClick={() => handlePlaceholderAction(copy.notifications)}
               >
                 <BellIcon />
               </button>
@@ -933,18 +1186,18 @@ export default function App() {
           <section className="hero">
             <div className="hero-copy">
               <h1>
-                Trial requests
+                {copy.heroTitle}
                 <span className={`flow-label ${demoMode === "goalrail" ? "goalrail" : "baseline"}`}>
                   <span className="dot" aria-hidden="true" />
                   {demoMode === "baseline"
-                    ? "Baseline flow · direct approval visible"
-                    : "Goalrail workflow slice · review gate active"}
+                    ? copy.heroFlowBaseline
+                    : copy.heroFlowGoalrail}
                 </span>
               </h1>
               <p className="hero-subtitle">
                 {demoMode === "baseline"
-                  ? "Before-state: the sandbox still allows a single operator to approve a trial immediately."
-                  : "After-state: approval must pass through manual review with reviewer, owner, and decision reason."}
+                  ? copy.heroSubtitleBaseline
+                  : copy.heroSubtitleGoalrail}
               </p>
             </div>
             <div className="hero-btns">
@@ -953,27 +1206,27 @@ export default function App() {
                 className="btn"
                 onClick={() => openArtifactPanel("business_request")}
               >
-                Goalrail artifacts
+                {copy.goalrailArtifacts}
               </button>
               <button
                 type="button"
                 className="btn ghost"
-                onClick={() => handlePlaceholderAction("Export")}
+                onClick={() => handlePlaceholderAction(copy.export)}
               >
-                Export
+                {copy.export}
               </button>
             </div>
           </section>
 
           {demoMode === "goalrail" ? (
-            <section className="goalrail-banner" aria-label="Goalrail slice active">
+            <section className="goalrail-banner" aria-label={copy.goalrailModeActive}>
               <div>
-                <b>Goalrail slice active.</b> Approval is blocked until the request enters manual review and a reviewer records owner plus reason.
+                <b>{copy.goalrailBannerTitle}</b> {copy.goalrailBannerBody}
               </div>
             </section>
           ) : null}
 
-          <section className="metrics" aria-label="Workflow metrics">
+          <section className="metrics" aria-label={copy.workflowMetrics}>
             {metricLabels.map(({ key, label }) => {
               const config = metricMeta[key];
               const value =
@@ -984,7 +1237,7 @@ export default function App() {
               return (
                 <article className="metric" key={key}>
                   <div className="label">{label}</div>
-                  <div className="value">{formatCount(value)}</div>
+                  <div className="value">{formatCount(value, locale)}</div>
                   <div className="delta">
                     <span className={`chip ${config.tone}`}>{config.delta}</span>
                     <span>{config.window}</span>
@@ -997,7 +1250,7 @@ export default function App() {
           <section className="body">
             <div className="panel table-panel">
               <div className="filter-row">
-                <div className="seg" role="tablist" aria-label="Status filter">
+                <div className="seg" role="tablist" aria-label={copy.statusFilter}>
                   {statusFilterOptions.map((filter) => {
                     const count =
                       filter === "all"
@@ -1011,8 +1264,10 @@ export default function App() {
                         className={filter === statusFilter ? "on" : undefined}
                         onClick={() => setStatusFilter(filter)}
                       >
-                        {filter === "all" ? "All" : formatStatusTitle(filter)}
-                        <span className="num">{formatCount(count)}</span>
+                        {filter === "all"
+                          ? copy.filterAll
+                          : formatStatusTitle(filter, locale)}
+                        <span className="num">{formatCount(count, locale)}</span>
                       </button>
                     );
                   })}
@@ -1021,34 +1276,34 @@ export default function App() {
                 <button
                   type="button"
                   className="btn ghost table-sort"
-                  onClick={() => handlePlaceholderAction("Sort")}
+                  onClick={() => handlePlaceholderAction(copy.sortAge)}
                 >
-                  Sort · Age
+                  {copy.sortAge}
                 </button>
               </div>
 
               {loading ? (
-                <div className="table-empty">Loading demo requests…</div>
+                <div className="table-empty">{copy.tableLoading}</div>
               ) : filteredItems.length === 0 ? (
-                <div className="table-empty">No requests match the current filters.</div>
+                <div className="table-empty">{copy.tableEmpty}</div>
               ) : (
                 <>
                   <div className="table-wrap">
                     <table>
                       <thead>
                         <tr>
-                          <th style={{ width: "34%" }}>Company</th>
-                          <th>Request</th>
-                          <th>Plan</th>
-                          <th>Seats</th>
-                          <th>MRR</th>
-                          <th>Status</th>
-                          <th style={{ width: "56px" }}>Age</th>
+                          <th style={{ width: "34%" }}>{copy.tableCompany}</th>
+                          <th>{copy.tableRequest}</th>
+                          <th>{copy.tablePlan}</th>
+                          <th>{copy.tableSeats}</th>
+                          <th>{copy.tableMrr}</th>
+                          <th>{copy.tableStatus}</th>
+                          <th style={{ width: "56px" }}>{copy.tableAge}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredItems.map((item) => {
-                          const presentation = getTrialPresentation(item);
+                          const presentation = getTrialPresentation(item, locale);
                           return (
                             <tr
                               key={item.id}
@@ -1070,12 +1325,12 @@ export default function App() {
                               <td>
                                 <span className="plan-pill">{presentation.planLabel}</span>
                               </td>
-                              <td className="num">{formatCount(presentation.seats)}</td>
-                              <td className="money">{formatCurrency(presentation.mrr)}</td>
+                              <td className="num">{formatCount(presentation.seats, locale)}</td>
+                              <td className="money">{formatCurrency(presentation.mrr, locale)}</td>
                               <td>
-                                <StatusChip status={item.status} />
+                                <StatusChip status={item.status} locale={locale} />
                               </td>
-                              <td className="age">{formatAge(item.createdAt)}</td>
+                              <td className="age">{formatAge(item.createdAt, locale)}</td>
                             </tr>
                           );
                         })}
@@ -1085,11 +1340,11 @@ export default function App() {
 
                   <div className="table-foot">
                     <div>
-                      Showing <b>{formatCount(filteredItems.length)}</b> of{" "}
-                      <b>{formatCount(listData?.meta.total ?? filteredItems.length)}</b>
+                      {copy.showing} <b>{formatCount(filteredItems.length, locale)}</b>{" "}
+                      {copy.of} <b>{formatCount(listData?.meta.total ?? filteredItems.length, locale)}</b>
                     </div>
                     <div className="pager">
-                      <button type="button" aria-label="Previous page">
+                      <button type="button" aria-label={copy.previousPage}>
                         ‹
                       </button>
                       <button type="button" className="on">
@@ -1099,7 +1354,7 @@ export default function App() {
                       <button type="button">3</button>
                       <button type="button">…</button>
                       <button type="button">13</button>
-                      <button type="button" aria-label="Next page">
+                      <button type="button" aria-label={copy.nextPage}>
                         ›
                       </button>
                     </div>
@@ -1111,7 +1366,7 @@ export default function App() {
             <aside className="right">
               <div className="panel">
                 {detailLoading ? (
-                  <div className="detail-empty">Loading request detail…</div>
+                  <div className="detail-empty">{copy.detailLoading}</div>
                 ) : selectedItem && selectedPresentation ? (
                   <>
                     <div className="detail-head">
@@ -1119,16 +1374,16 @@ export default function App() {
                       <div className="detail-title">
                         <b>{selectedItem.companyName}</b>
                         <span>
-                          {formatRequestCode(selectedItem.id)} · {formatAge(selectedItem.createdAt)} ago
+                          {formatRequestCode(selectedItem.id)} · {formatAge(selectedItem.createdAt, locale)} {copy.ago}
                         </span>
                       </div>
                       <span className="grow" />
-                      <StatusChip status={selectedItem.status} compact />
+                      <StatusChip status={selectedItem.status} compact locale={locale} />
                       <button
                         type="button"
                         className="icon-btn"
-                        title="More"
-                        onClick={() => handlePlaceholderAction("More actions")}
+                        title={copy.moreActions}
+                        onClick={() => handlePlaceholderAction(copy.moreActions)}
                       >
                         <MoreIcon />
                       </button>
@@ -1136,56 +1391,56 @@ export default function App() {
 
                     <div className="detail-body">
                       <div className="fieldset">
-                        <div className="l">Requester</div>
+                        <div className="l">{copy.requester}</div>
                         <div className="v">
                           {selectedItem.contactName}
                           <span className="muted">· {selectedPresentation.requesterTitle}</span>
                         </div>
 
-                        <div className="l">Email</div>
+                        <div className="l">{copy.email}</div>
                         <div className="v mono">{selectedItem.email}</div>
 
-                        <div className="l">Plan</div>
+                        <div className="l">{copy.plan}</div>
                         <div className="v">
-                          {selectedPresentation.planLabel} · {formatCount(selectedPresentation.seats)} seats · {formatCurrency(selectedPresentation.mrr)}/mo
+                          {selectedPresentation.planLabel} · {formatCount(selectedPresentation.seats, locale)} {copy.seatsUnit} · {formatCurrency(selectedPresentation.mrr, locale)}{copy.perMonth}
                         </div>
 
-                        <div className="l">Owner</div>
+                        <div className="l">{copy.owner}</div>
                         <div className="v">
-                          {selectedItem.owner ?? "Unassigned"}
+                          {selectedItem.owner ?? copy.unassigned}
                           <span className="muted">
-                            · {demoMode === "baseline" ? "baseline ops queue" : "must be visible before review approval"}
+                            · {demoMode === "baseline" ? copy.baselineQueue : copy.ownerMustBeVisible}
                           </span>
                         </div>
 
-                        <div className="l">Region</div>
+                        <div className="l">{copy.region}</div>
                         <div className="v">{selectedPresentation.region}</div>
 
-                        <div className="l">Source</div>
-                        <div className="v">Inbound · {selectedPresentation.source}</div>
+                        <div className="l">{copy.source}</div>
+                        <div className="v">{copy.inbound} · {selectedPresentation.source}</div>
 
-                        <div className="l">Mode</div>
+                        <div className="l">{copy.mode}</div>
                         <div className="v">
-                          {demoMode === "baseline" ? "Baseline / before-state" : "Goalrail slice / review gate"}
+                          {demoMode === "baseline" ? copy.baselineBeforeState : copy.goalrailReviewGate}
                         </div>
                       </div>
                     </div>
 
                     <div className="notes">
-                      <div className="nh">Requester notes</div>
-                      {selectedItem.notes.join(" ")}
+                      <div className="nh">{copy.notes}</div>
+                      {selectedItem.notes.map((note) => translateRequestNote(note, locale)).join(" ")}
                     </div>
 
                     {demoMode === "baseline" ? (
                       <div className="form">
                         <div className="form-h">
-                          <h4>Update status</h4>
-                          <span className="hint">Written to audit log</span>
+                          <h4>{copy.updateStatus}</h4>
+                          <span className="hint">{copy.writtenToAudit}</span>
                         </div>
 
                         <div className="form-row">
                           <div className="field">
-                            <label htmlFor="decision-select">Decision</label>
+                            <label htmlFor="decision-select">{copy.decision}</label>
                             <select
                               id="decision-select"
                               className="select"
@@ -1201,7 +1456,8 @@ export default function App() {
                                   {getPrimaryActionLabel(
                                     selectedItem.status,
                                     status,
-                                    demoMode
+                                    demoMode,
+                                    locale
                                   )}
                                 </option>
                               ))}
@@ -1209,25 +1465,27 @@ export default function App() {
                           </div>
 
                           <div className="field">
-                            <label htmlFor="trial-length">Trial length</label>
+                            <label htmlFor="trial-length">{copy.trialLength}</label>
                             <select
                               id="trial-length"
                               className="select"
                               value={trialLength}
                               onChange={(event) => setTrialLength(event.target.value)}
                             >
-                              <option>30 days</option>
-                              <option>14 days</option>
-                              <option>60 days</option>
+                              {trialLengthOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
                             </select>
                           </div>
                         </div>
 
                         <div className="field">
-                          <label htmlFor="baseline-reason">Internal reason</label>
+                          <label htmlFor="baseline-reason">{copy.internalReason}</label>
                           <textarea
                             id="baseline-reason"
-                            placeholder="Optional note…"
+                            placeholder={copy.optionalNote}
                             value={reason}
                             onChange={(event) => {
                               setReason(event.target.value);
@@ -1239,7 +1497,7 @@ export default function App() {
                         <div className="warn-inline">
                           <WarnIcon />
                           <div>
-                            <b>Direct approval enabled.</b> Approve provisions the trial immediately — no second reviewer required.
+                            <b>{copy.directApprovalTitle}</b> {copy.directApprovalBody}
                           </div>
                         </div>
 
@@ -1251,7 +1509,7 @@ export default function App() {
                             onClick={() => void handleStatusUpdate("rejected")}
                             disabled={submitting || selectedItem.status === "rejected"}
                           >
-                            Reject
+                            {copy.reject}
                           </button>
                           <button
                             type="button"
@@ -1260,11 +1518,12 @@ export default function App() {
                             disabled={submitting || nextStatus === selectedItem.status}
                           >
                             {submitting
-                              ? "Applying…"
+                              ? copy.applying
                               : getPrimaryActionLabel(
                                   selectedItem.status,
                                   nextStatus,
-                                  demoMode
+                                  demoMode,
+                                  locale
                                 )}
                           </button>
                         </div>
@@ -1272,13 +1531,13 @@ export default function App() {
                     ) : selectedItem.status === "manual_review" ? (
                       <div className="form">
                         <div className="form-h">
-                          <h4>Review decision</h4>
-                          <span className="hint">Reviewer, owner, and reason are required</span>
+                          <h4>{copy.reviewDecision}</h4>
+                          <span className="hint">{copy.reviewerOwnerReasonRequired}</span>
                         </div>
 
                         <div className="form-row review-grid">
                           <div className="field">
-                            <label htmlFor="reviewer-actor">Reviewer</label>
+                            <label htmlFor="reviewer-actor">{copy.reviewer}</label>
                             <input
                               id="reviewer-actor"
                               className="text-input"
@@ -1288,7 +1547,7 @@ export default function App() {
                             />
                           </div>
                           <div className="field">
-                            <label htmlFor="review-owner">Assigned owner</label>
+                            <label htmlFor="review-owner">{copy.assignedOwner}</label>
                             <input
                               id="review-owner"
                               className="text-input"
@@ -1300,10 +1559,10 @@ export default function App() {
                         </div>
 
                         <div className="field">
-                          <label htmlFor="review-reason">Decision reason</label>
+                          <label htmlFor="review-reason">{copy.decisionReason}</label>
                           <textarea
                             id="review-reason"
-                            placeholder="Explain why the request is ready for approval or why it should be rejected."
+                            placeholder={copy.decisionReasonPlaceholder}
                             value={reason}
                             onChange={(event) => {
                               setReason(event.target.value);
@@ -1313,9 +1572,9 @@ export default function App() {
                         </div>
 
                         <div className="goalrail-inline">
-                          <div className="goalrail-inline-title">Manual review required</div>
+                          <div className="goalrail-inline-title">{copy.manualReviewRequired}</div>
                           <div className="goalrail-inline-copy">
-                            The demo will reject approval until the reviewer actor, assigned owner, and decision reason are visible.
+                            {copy.manualReviewRequiredBody}
                           </div>
                         </div>
 
@@ -1327,7 +1586,7 @@ export default function App() {
                             onClick={() => void handleStatusUpdate("rejected")}
                             disabled={submitting}
                           >
-                            {submitting ? "Applying…" : "Reject after review"}
+                            {submitting ? copy.applying : copy.rejectAfterReview}
                           </button>
                           <button
                             type="button"
@@ -1335,51 +1594,47 @@ export default function App() {
                             onClick={() => void handleStatusUpdate("approved")}
                             disabled={submitting}
                           >
-                            {submitting ? "Applying…" : "Approve after review"}
+                            {submitting ? copy.applying : copy.approveAfterReview}
                           </button>
                         </div>
                       </div>
                     ) : isFinalStatus(selectedItem.status) ? (
                       <div className="final-state-card">
                         <div className="final-state-head">
-                          <b>Final status ready for proof</b>
-                          <StatusChip status={selectedItem.status} compact />
+                          <b>{copy.finalStatusReady}</b>
+                          <StatusChip status={selectedItem.status} compact locale={locale} />
                         </div>
-                        <p>
-                          The Goalrail slice is now in a final state. Stay in the browser: open the Goalrail artifacts panel, switch to Proof or Readout, and use the Current evidence card next to the live audit.
-                        </p>
+                        <p>{copy.finalStateBody}</p>
                         <div className="artifact-shortcuts">
                           <button
                             type="button"
                             className="btn ghost"
                             onClick={() => openArtifactPanel("proof")}
                           >
-                            Open proof in UI
+                            {copy.openProofInUi}
                           </button>
                           <button
                             type="button"
                             className="btn"
                             onClick={() => openArtifactPanel("readout")}
                           >
-                            Open readout in UI
+                            {copy.openReadoutInUi}
                           </button>
                         </div>
                         <div className="artifact-fallback-note">
-                          Markdown files remain available as fallback reference only.
+                          {copy.markdownFallbackOnly}
                         </div>
                       </div>
                     ) : (
                       <div className="form">
                         <div className="form-h">
-                          <h4>Goalrail review gate</h4>
-                          <span className="hint">Approval is blocked until review is completed</span>
+                          <h4>{copy.goalrailReviewGateTitle}</h4>
+                          <span className="hint">{copy.approvalBlockedHint}</span>
                         </div>
 
                         <div className="review-gate-card">
-                          <div className="review-gate-title">Goalrail slice active</div>
-                          <div className="review-gate-copy">
-                            Direct approval is blocked in this mode. Move the request into <b>manual review</b> first, then complete the review decision with owner plus reason.
-                          </div>
+                          <div className="review-gate-title">{copy.goalrailBannerTitle}</div>
+                          <div className="review-gate-copy">{copy.goalrailReviewGateBody}</div>
                         </div>
 
                         <div className="actions split-actions">
@@ -1390,7 +1645,7 @@ export default function App() {
                               onClick={() => void handleStatusUpdate("qualified")}
                               disabled={submitting}
                             >
-                              {submitting ? "Applying…" : "Mark as qualified"}
+                              {submitting ? copy.applying : copy.markQualified}
                             </button>
                           ) : null}
                           <span className="grow" />
@@ -1400,28 +1655,28 @@ export default function App() {
                             onClick={() => void handleStatusUpdate("manual_review")}
                             disabled={submitting}
                           >
-                            {submitting ? "Applying…" : "Send to manual review"}
+                            {submitting ? copy.applying : copy.sendToManualReview}
                           </button>
                         </div>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="detail-empty">Select a trial request to inspect its detail.</div>
+                  <div className="detail-empty">{copy.detailEmpty}</div>
                 )}
               </div>
 
               <div className="panel">
                 <div className="panel-h">
-                  <h3>Audit log</h3>
+                  <h3>{copy.auditLog}</h3>
                   <span className="sub">
-                    {selectedItem ? formatRequestCode(selectedItem.id) : "Demo"}
+                    {selectedItem ? formatRequestCode(selectedItem.id) : copy.demo}
                   </span>
                 </div>
 
                 <div className="audit">
                   {timelineItems.length === 0 ? (
-                    <div className="audit-empty">No audit activity yet.</div>
+                    <div className="audit-empty">{copy.noAuditActivity}</div>
                   ) : (
                     timelineItems.map((item) => (
                       <div
@@ -1436,8 +1691,9 @@ export default function App() {
                         <div className="audit-body">
                           {item.kind === "status" ? (
                             <div className="audit-l1">
-                              Status <span className="tag">{formatStatusLabel(item.fromStatus!)}</span> →{" "}
-                              <span className="tag">{formatStatusLabel(item.toStatus!)}</span>
+                              {copy.statusPrefix}{" "}
+                              <span className="tag">{formatStatusLabel(item.fromStatus!, locale)}</span> →{" "}
+                              <span className="tag">{formatStatusLabel(item.toStatus!, locale)}</span>
                             </div>
                           ) : (
                             <div className="audit-l1">
@@ -1448,10 +1704,10 @@ export default function App() {
                           )}
                           <div className="audit-l2">
                             <span className="actor">{item.actor}</span>
-                            <span>{formatAuditTime(item.createdAt)}</span>
+                            <span>{formatAuditTime(item.createdAt, locale)}</span>
                           </div>
                           {item.assignedOwner ? (
-                            <div className="audit-meta">Assigned owner · {item.assignedOwner}</div>
+                            <div className="audit-meta">{copy.assignedOwnerPrefix}{item.assignedOwner}</div>
                           ) : null}
                           {item.note ? <div className="audit-note">{item.note}</div> : null}
                         </div>
@@ -1467,6 +1723,9 @@ export default function App() {
 
       {artifactPanelOpen ? (
         <GoalrailArtifactPanel
+          locale={locale}
+          copy={copy}
+          demoArtifacts={demoArtifacts}
           workflowMode={demoMode}
           selectedItem={selectedItem}
           selectedAuditItems={selectedAuditItems}
@@ -1484,25 +1743,62 @@ export default function App() {
   );
 }
 
-function NavItem(props: { label: string; count?: number; active?: boolean }) {
+function NavItem(props: {
+  label: string;
+  count?: number;
+  active?: boolean;
+  activeLocale: AppLocale;
+}) {
   return (
     <a className={props.active ? "active" : undefined} href="#">
       {props.label}
       {typeof props.count === "number" ? (
-        <span className="count">{formatCount(props.count)}</span>
+        <span className="count">{formatCount(props.count, props.activeLocale)}</span>
       ) : null}
     </a>
   );
 }
 
+function LanguageToggle(props: {
+  locale: AppLocale;
+  onChange: (locale: AppLocale) => void;
+}) {
+  const copy = uiCopy[props.locale];
+
+  return (
+    <div className="demo-mode-switcher locale-switcher" aria-label={copy.language}>
+      <div className="demo-mode-label">{copy.language}</div>
+      <div className="demo-mode-buttons">
+        <button
+          type="button"
+          className={props.locale === "en" ? "active" : undefined}
+          onClick={() => props.onChange("en")}
+        >
+          {copy.langEnglish}
+        </button>
+        <button
+          type="button"
+          className={props.locale === "ru" ? "active" : undefined}
+          onClick={() => props.onChange("ru")}
+        >
+          {copy.langRussian}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DemoModeToggle(props: {
   workflowMode: DemoWorkflowMode;
+  locale: AppLocale;
   disabled?: boolean;
   onChange: (mode: DemoWorkflowMode) => void;
 }) {
+  const copy = uiCopy[props.locale];
+
   return (
-    <div className="demo-mode-switcher" aria-label="Demo mode switcher">
-      <div className="demo-mode-label">Demo mode</div>
+    <div className="demo-mode-switcher" aria-label={copy.demoMode}>
+      <div className="demo-mode-label">{copy.demoMode}</div>
       <div className="demo-mode-buttons">
         <button
           type="button"
@@ -1510,8 +1806,8 @@ function DemoModeToggle(props: {
           onClick={() => props.onChange("baseline")}
           disabled={props.disabled}
         >
-          <span className="mode-context">Before</span>
-          Baseline
+          <span className="mode-context">{copy.before}</span>
+          {copy.baseline}
         </button>
         <button
           type="button"
@@ -1519,29 +1815,38 @@ function DemoModeToggle(props: {
           onClick={() => props.onChange("goalrail")}
           disabled={props.disabled}
         >
-          <span className="mode-context">After</span>
-          Goalrail slice
+          <span className="mode-context">{copy.after}</span>
+          {copy.goalrailSlice}
         </button>
       </div>
     </div>
   );
 }
 
-function StatusChip(props: { status: TrialRequestStatus; compact?: boolean }) {
+function StatusChip(props: {
+  status: TrialRequestStatus;
+  compact?: boolean;
+  locale: AppLocale;
+}) {
   return (
     <span
       className={`status ${statusClassNames[props.status]}${props.compact ? " compact" : ""}`}
     >
       <span className="d" aria-hidden="true" />
-      {formatStatusTitle(props.status)}
+      {formatStatusTitle(props.status, props.locale)}
     </span>
   );
 }
 
-const formatArtifactStatus = (value: DemoArtifact["status"]): string =>
-  value.replace("_", " ");
+const formatArtifactStatus = (
+  value: DemoArtifact["status"],
+  locale: AppLocale
+): string => artifactStatusTitles[locale][value];
 
 function GoalrailArtifactPanel(props: {
+  locale: AppLocale;
+  copy: (typeof uiCopy)[AppLocale];
+  demoArtifacts: DemoArtifact[];
   workflowMode: DemoWorkflowMode;
   selectedItem: TrialRequest | null;
   selectedAuditItems: AuditEvent[];
@@ -1551,79 +1856,77 @@ function GoalrailArtifactPanel(props: {
   onClose: () => void;
 }) {
   const activeArtifact =
-    demoArtifacts.find((artifact) => artifact.id === props.activeArtifactId) ??
-    demoArtifacts[0];
+    props.demoArtifacts.find((artifact) => artifact.id === props.activeArtifactId) ??
+    props.demoArtifacts[0];
 
   const latestTransition = props.latestAuditItem
-    ? `${formatStatusTitle(props.latestAuditItem.fromStatus)} → ${formatStatusTitle(
-        props.latestAuditItem.toStatus
+    ? `${formatStatusTitle(props.latestAuditItem.fromStatus, props.locale)} → ${formatStatusTitle(
+        props.latestAuditItem.toStatus,
+        props.locale
       )}`
-    : "Evidence pending";
+    : props.copy.evidencePending;
 
   return (
     <div
       className="artifact-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Goalrail artifacts panel"
+      aria-label={props.copy.goalrailArtifactsPanelLabel}
     >
       <button
         type="button"
         className="artifact-overlay-backdrop"
-        aria-label="Close Goalrail artifacts panel"
+        aria-label={props.copy.close}
         onClick={props.onClose}
       />
       <aside className="artifact-panel">
         <div className="artifact-panel-head">
           <div>
-            <div className="artifact-panel-eyebrow">Goalrail artifacts</div>
-            <h2>Artifact workspace</h2>
-            <p>
-              Stay in the UI for business request, clarification, contract, task plan,
-              proof, readout, and live evidence from the selected request.
-            </p>
+            <div className="artifact-panel-eyebrow">{props.copy.goalrailArtifacts}</div>
+            <h2>{props.copy.artifactWorkspace}</h2>
+            <p>{props.copy.artifactWorkspaceBody}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={props.onClose} title="Close">
+          <button type="button" className="icon-btn" onClick={props.onClose} title={props.copy.close}>
             <CloseIcon />
           </button>
         </div>
 
         <div className="artifact-context-strip">
           <ArtifactContextStat
-            label="Current mode"
+            label={props.copy.currentMode}
             value={
               props.workflowMode === "baseline"
-                ? "Baseline / before-state"
-                : "Goalrail slice / after-state"
+                ? props.copy.baselineBeforeState
+                : props.copy.goalrailReviewGate
             }
           />
           <ArtifactContextStat
-            label="Selected request"
+            label={props.copy.selectedRequest}
             value={
-              props.selectedItem ? formatRequestCode(props.selectedItem.id) : "No request selected"
+              props.selectedItem ? formatRequestCode(props.selectedItem.id) : props.copy.noRequestSelected
             }
           />
           <ArtifactContextStat
-            label="Current status"
+            label={props.copy.currentStatus}
             value={
               props.selectedItem
-                ? formatStatusTitle(props.selectedItem.status)
-                : "No request selected"
+                ? formatStatusTitle(props.selectedItem.status, props.locale)
+                : props.copy.noRequestSelected
             }
           />
           <ArtifactContextStat
-            label="Current owner"
-            value={props.selectedItem?.owner ?? "Unassigned"}
+            label={props.copy.currentOwner}
+            value={props.selectedItem?.owner ?? props.copy.unassigned}
           />
           <ArtifactContextStat
-            label="Latest audit evidence"
+            label={props.copy.latestAuditEvidence}
             value={latestTransition}
           />
         </div>
 
-        <div className="artifact-contour" aria-label="Demo proof contour">
+        <div className="artifact-contour" aria-label={props.copy.demoProofContour}>
           {demoArtifactOrder.map((artifactId) => {
-            const artifact = demoArtifacts.find((item) => item.id === artifactId);
+            const artifact = props.demoArtifacts.find((item) => item.id === artifactId);
             if (!artifact) {
               return null;
             }
@@ -1645,6 +1948,9 @@ function GoalrailArtifactPanel(props: {
 
         <div className="artifact-workspace">
           <ArtifactNav
+            locale={props.locale}
+            copy={props.copy}
+            demoArtifacts={props.demoArtifacts}
             activeArtifactId={activeArtifact.id}
             onSelectArtifact={props.onSelectArtifact}
           />
@@ -1652,22 +1958,22 @@ function GoalrailArtifactPanel(props: {
           <div className="artifact-detail-shell">
             <div className="artifact-detail-head">
               <div>
-                <div className="artifact-detail-eyebrow">Selected artifact</div>
+                <div className="artifact-detail-eyebrow">{props.copy.selectedArtifact}</div>
                 <h3>{activeArtifact.title}</h3>
                 <p>{activeArtifact.subtitle}</p>
               </div>
               <span className={`artifact-status-pill ${activeArtifact.status}`}>
-                {formatArtifactStatus(activeArtifact.status)}
+                {formatArtifactStatus(activeArtifact.status, props.locale)}
               </span>
             </div>
 
             <div className="artifact-detail-meta">
               <div className="artifact-presenter-cue">
-                <span>Presenter cue</span>
+                <span>{props.copy.presenterCue}</span>
                 <b>{activeArtifact.presenterNote}</b>
               </div>
               <div className="artifact-source-meta">
-                <span>Source artifact</span>
+                <span>{props.copy.sourceArtifact}</span>
                 <code>{activeArtifact.artifactPath}</code>
               </div>
             </div>
@@ -1689,6 +1995,8 @@ function GoalrailArtifactPanel(props: {
 
               <div className="artifact-detail-side">
                 <CurrentEvidenceCard
+                  locale={props.locale}
+                  copy={props.copy}
                   selectedItem={props.selectedItem}
                   latestAuditItem={props.latestAuditItem}
                   evidenceCount={props.selectedAuditItems.length}
@@ -1703,12 +2011,15 @@ function GoalrailArtifactPanel(props: {
 }
 
 function ArtifactNav(props: {
+  locale: AppLocale;
+  copy: (typeof uiCopy)[AppLocale];
+  demoArtifacts: DemoArtifact[];
   activeArtifactId: DemoArtifactKind;
   onSelectArtifact: (artifactId: DemoArtifactKind) => void;
 }) {
   return (
-    <nav className="artifact-nav" aria-label="Artifact navigation">
-      {demoArtifacts.map((artifact) => (
+    <nav className="artifact-nav" aria-label={props.copy.artifactNavigation}>
+      {props.demoArtifacts.map((artifact) => (
         <button
           key={artifact.id}
           type="button"
@@ -1720,7 +2031,7 @@ function ArtifactNav(props: {
           <div className="artifact-nav-top">
             <span className="artifact-nav-label">{artifact.navLabel}</span>
             <span className={`artifact-nav-status ${artifact.status}`}>
-              {formatArtifactStatus(artifact.status)}
+              {formatArtifactStatus(artifact.status, props.locale)}
             </span>
           </div>
           <div className="artifact-nav-note">{artifact.presenterNote}</div>
@@ -1819,6 +2130,8 @@ function ArtifactTableCard(props: { table: DemoArtifactTable }) {
 }
 
 function CurrentEvidenceCard(props: {
+  locale: AppLocale;
+  copy: (typeof uiCopy)[AppLocale];
   selectedItem: TrialRequest | null;
   latestAuditItem: AuditEvent | null;
   evidenceCount: number;
@@ -1827,30 +2140,32 @@ function CurrentEvidenceCard(props: {
     <aside className="current-evidence-card">
       <div className="current-evidence-head">
         <div>
-          <div className="artifact-detail-eyebrow">Current evidence</div>
-          <h4>Live request proof</h4>
+          <div className="artifact-detail-eyebrow">{props.copy.currentEvidence}</div>
+          <h4>{props.copy.liveRequestProof}</h4>
         </div>
-        <span className="current-evidence-count">{props.evidenceCount} events</span>
+        <span className="current-evidence-count">
+          {formatCount(props.evidenceCount, props.locale)} {props.copy.events}
+        </span>
       </div>
 
       <dl className="current-evidence-grid">
         <div>
-          <dt>Selected request</dt>
+          <dt>{props.copy.selectedRequest}</dt>
           <dd>
-            {props.selectedItem ? formatRequestCode(props.selectedItem.id) : "No request selected"}
+            {props.selectedItem ? formatRequestCode(props.selectedItem.id) : props.copy.noRequestSelected}
           </dd>
         </div>
         <div>
-          <dt>Current status</dt>
+          <dt>{props.copy.currentStatus}</dt>
           <dd>
             {props.selectedItem
-              ? formatStatusTitle(props.selectedItem.status)
-              : "No request selected"}
+              ? formatStatusTitle(props.selectedItem.status, props.locale)
+              : props.copy.noRequestSelected}
           </dd>
         </div>
         <div>
-          <dt>Owner</dt>
-          <dd>{props.selectedItem?.owner ?? "Unassigned"}</dd>
+          <dt>{props.copy.owner}</dt>
+          <dd>{props.selectedItem?.owner ?? props.copy.unassigned}</dd>
         </div>
       </dl>
 
@@ -1858,30 +2173,30 @@ function CurrentEvidenceCard(props: {
         <>
           <dl className="current-evidence-grid">
             <div>
-              <dt>Latest transition</dt>
+              <dt>{props.copy.latestTransition}</dt>
               <dd>
-                {formatStatusTitle(props.latestAuditItem.fromStatus)} →{" "}
-                {formatStatusTitle(props.latestAuditItem.toStatus)}
+                {formatStatusTitle(props.latestAuditItem.fromStatus, props.locale)} →{" "}
+                {formatStatusTitle(props.latestAuditItem.toStatus, props.locale)}
               </dd>
             </div>
             <div>
-              <dt>Latest actor</dt>
+              <dt>{props.copy.latestActor}</dt>
               <dd>{props.latestAuditItem.actor}</dd>
             </div>
             <div>
-              <dt>Latest time</dt>
-              <dd>{formatAuditTime(props.latestAuditItem.createdAt)}</dd>
+              <dt>{props.copy.latestTime}</dt>
+              <dd>{formatAuditTime(props.latestAuditItem.createdAt, props.locale)}</dd>
             </div>
           </dl>
 
           <div className="current-evidence-reason">
-            <span>Latest reason</span>
-            <p>{props.latestAuditItem.reason ?? "No reason recorded."}</p>
+            <span>{props.copy.latestReason}</span>
+            <p>{props.latestAuditItem.reason ?? props.copy.noReasonRecorded}</p>
           </div>
         </>
       ) : (
         <div className="current-evidence-empty">
-          Evidence will appear here after a workflow transition.
+          {props.copy.evidenceWillAppear}
         </div>
       )}
     </aside>

@@ -20,7 +20,9 @@ npm run smoke
 
 Open:
 - Web UI: `http://127.0.0.1:5173`
+- Russian Web UI: `http://127.0.0.1:5173/ru`
 - Fallback Web UI: `http://127.0.0.1:5174`
+- Fallback Russian Web UI: `http://127.0.0.1:5174/ru`
 - Keep markdown artifacts available only as fallback/reference
 
 Fallback start if default ports are busy:
@@ -30,9 +32,12 @@ npm run reset
 API_PORT=4411 WEB_PORT=5174 npm run dev
 ```
 
+For a Russian-speaking audience, open `/ru` and keep the whole route inside the localized UI.
+
 ## 2. Show baseline mode
 
 - Point to the top-bar switcher: `Demo mode: Baseline / Goalrail slice`
+- If the room is Russian-speaking, also point to the language switch and confirm the URL is `/ru`
 - Confirm the default is **Baseline**
 - Call out the warning in the detail panel:
   `Direct approval enabled. Approve provisions the trial immediately — no second reviewer required.`
@@ -116,6 +121,7 @@ Optional follow-up line:
 ## Fallback only
 
 Do **not** open proof/readout markdown during the normal demo.
+Do **not** leave the browser during the Russian route either; use `/ru` plus the in-app artifact viewer.
 
 Use markdown only if the UI breaks:
 - `demo/proof-packs/workflow-change/proof-sample.md`

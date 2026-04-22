@@ -2,6 +2,8 @@
 
 ## 1. Цель демо
 
+- Для русскоязычной аудитории открывать интерфейс сразу на `/ru`, чтобы не переключаться в процессе:
+  `http://127.0.0.1:5173/ru`
 - Показать не “AI написал код”, а управляемый Goalrail-style flow:
   `business request -> clarification -> working contract -> bounded task plan -> implementation/preview -> inspectable proof -> pilot CTA`
 - Показать проблему и решение в одном запуске через переключатель demo mode.
@@ -31,6 +33,7 @@
 
 Что показать:
 - top-bar switcher в режиме **Baseline**
+- language switch / URL `/ru`
 - `qualified` request
 - warning про direct approval
 - кнопку `Approve trial`
@@ -144,3 +147,5 @@ API_PORT=4411 WEB_PORT=5174 npm run dev
 
 - Default Web: `http://127.0.0.1:5173`
 - Fallback Web: `http://127.0.0.1:5174`
+- Russian Web: `http://127.0.0.1:5173/ru`
+- Russian fallback Web: `http://127.0.0.1:5174/ru`

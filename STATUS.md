@@ -15,6 +15,7 @@
 - Preserve the baseline weakness in `baseline` mode
 - Show the Goalrail after-state in `goalrail` mode with `manual_review`, owner, reason, and audit evidence
 - Keep tomorrow's golden path fully inside the browser with an in-app artifact viewer
+- Add a Russian-localized `/ru` route so the same UI-only demo works for Russian-speaking audiences
 
 ## Recent achievements
 
@@ -23,6 +24,7 @@
 - Replaced the simple flow overlay with a full in-app Goalrail artifact workspace
 - Added dynamic Current evidence so proof/readout can be shown next to live request evidence
 - Extended smoke coverage to validate baseline direct approval and Goalrail review-gated approval
+- Added path-based locale switching so English stays on `/` and Russian runs on `/ru`
 
 ## Next steps
 
