@@ -1147,12 +1147,6 @@ textarea::placeholder,
   margin-top: 14px;
 }
 
-.artifact-fallback-note {
-  margin-top: 10px;
-  font-size: 11px;
-  color: var(--ink-4);
-}
-
 .audit {
   padding: 4px 0 8px;
 }
@@ -1531,16 +1525,14 @@ textarea::placeholder,
   margin-top: 14px;
 }
 
-.artifact-presenter-cue,
-.artifact-source-meta {
+.artifact-callout-card {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
   padding: 10px 12px;
 }
 
-.artifact-presenter-cue span,
-.artifact-source-meta span,
+.artifact-callout-card span,
 .current-evidence-reason span {
   display: block;
   margin-bottom: 5px;
@@ -1550,18 +1542,10 @@ textarea::placeholder,
   color: var(--ink-4);
 }
 
-.artifact-presenter-cue b {
+.artifact-callout-card b {
   color: var(--ink);
   font-size: 12px;
   line-height: 1.55;
-}
-
-.artifact-source-meta code {
-  display: block;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 11.5px;
-  color: var(--ink-2);
-  word-break: break-word;
 }
 
 .artifact-detail-layout {

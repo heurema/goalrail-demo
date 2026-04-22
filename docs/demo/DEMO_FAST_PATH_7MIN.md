@@ -36,9 +36,9 @@ For a Russian-speaking audience, open `/ru` and keep the whole route inside the 
 
 ## 2. Show baseline mode
 
-- Point to the top-bar switcher: `Demo mode: Baseline / Goalrail slice`
+- Point to the top-bar switcher: `Workflow profile: Baseline flow / Review-gated flow`
 - If the room is Russian-speaking, also point to the language switch and confirm the URL is `/ru`
-- Confirm the default is **Baseline**
+- Confirm the default is **Baseline flow**
 - Call out the warning in the detail panel:
   `Direct approval enabled. Approve provisions the trial immediately — no second reviewer required.`
 
@@ -49,9 +49,9 @@ For a Russian-speaking audience, open `/ru` and keep the whole route inside the 
 - Do **not** click approve in baseline mode
 - Explain: this is the deliberate before-state weakness
 
-## 4. Open the Goalrail artifacts panel
+## 4. Open Goalrail flow
 
-- Click `Goalrail artifacts`
+- Click `Goalrail flow`
 - Walk the in-app tabs quickly:
   - Business request
   - Clarification
@@ -59,11 +59,11 @@ For a Russian-speaking audience, open `/ru` and keep the whole route inside the 
   - Bounded task plan
   - Inspectable proof
   - Pilot readout
-- Call out the presenter cue and artifact path metadata so the audience sees this is inspectable, not hand-wavy
+- Call out the buyer-facing callout and the tab structure so the audience sees a clean change package, not backstage demo notes
 
 ## 5. Switch to Goalrail mode
 
-- Flip the switcher to **Goalrail slice**
+- Flip the switcher to **Review-gated flow**
 - Point to the banner: review gate is active
 - Reuse the same kind of `qualified` request
 
@@ -99,7 +99,7 @@ For a Russian-speaking audience, open `/ru` and keep the whole route inside the 
 
 ## 10. Stay in the UI for proof and readout
 
-- Keep `Goalrail artifacts` open
+- Keep `Goalrail flow` open
 - Go to `Proof`
 - Show the `Current evidence` card next to the proof summary
 - Then switch to `Pilot readout`
@@ -122,6 +122,7 @@ Optional follow-up line:
 
 Do **not** open proof/readout markdown during the normal demo.
 Do **not** leave the browser during the Russian route either; use `/ru` plus the in-app artifact viewer.
+Do **not** use any presenter/debug URL during tomorrow’s demo.
 
 Use markdown only if the UI breaks:
 - `demo/proof-packs/workflow-change/proof-sample.md`

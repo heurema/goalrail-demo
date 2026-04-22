@@ -33,6 +33,7 @@ Open:
 - Markdown artifacts only as fallback/reference
 
 For Russian-speaking rooms, run the same UI-only route on `/ru`.
+Use the clean buyer-facing UI; presenter notes stay in docs, not in the browser.
 
 ## What this demo is and is not
 
@@ -54,14 +55,14 @@ For Russian-speaking rooms, run the same UI-only route on `/ru`.
 ### 1. Introduce the app and the mode switch — 1.5 minutes
 
 Show:
-- the top-bar `Demo mode` switcher
+- the top-bar `Workflow profile` switcher
 - the request list
 - the detail panel
 - the audit log panel
 
 Say:
 - “This is TrialOps, a small internal tool for handling trial requests.”
-- “The switcher lets us show both the weakness and the bounded Goalrail slice in one running app.”
+- “The switcher lets us show both the weakness and the bounded review-gated flow in one running app.”
 
 ### 2. Show the baseline weakness — 1.5 minutes
 
@@ -76,10 +77,10 @@ Say:
 - “This is the deliberate before-state.”
 - “A single operator can approve directly. No second reviewer is required.”
 
-### 3. Open the Goalrail artifacts panel — 1.5 minutes
+### 3. Open Goalrail flow — 1.5 minutes
 
 Click:
-- `Goalrail artifacts`
+- `Goalrail flow`
 
 Say:
 - “This is the operating shape we want to talk about.”
@@ -87,13 +88,13 @@ Say:
 
 Call out:
 - the tab titles
-- the presenter cue
-- the artifact path metadata
+- the buyer-facing callout
+- the clean product-like flow package
 
 ### 4. Switch to Goalrail mode — 1 minute
 
 Toggle:
-- `Goalrail slice`
+- `Review-gated flow`
 
 Say:
 - “Now the workflow-change slice is active.”
@@ -127,9 +128,9 @@ Say:
 
 Show:
 - audit log entry with actor, from status, to status, owner, reason, timestamp
-- `Goalrail artifacts` → `Proof`
+- `Goalrail flow` → `Proof`
 - `Current evidence` card
-- `Goalrail artifacts` → `Pilot readout`
+- `Goalrail flow` → `Pilot readout`
 
 Say:
 - “The value is not only the code change.”
@@ -145,7 +146,7 @@ Suggested close:
 
 If any live step becomes noisy:
 1. keep the UI open in baseline or Goalrail mode
-2. use the Goalrail artifacts panel
+2. use the Goalrail flow panel
 3. open the proof sample and readout sample only if the UI becomes unusable
 4. keep the message focused on bounded flow, not automation theatrics
 
@@ -154,4 +155,5 @@ If any live step becomes noisy:
 - Keep the story narrow.
 - Do not improvise new requirements mid-demo.
 - Do not overclaim AI automation.
-- Prefer the in-app Goalrail artifacts viewer during the normal path; markdown is fallback only.
+- Prefer the in-app Goalrail flow panel during the normal path; markdown is fallback only.
+- Keep presenter notes in docs, not in the UI.

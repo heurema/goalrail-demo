@@ -16,6 +16,7 @@
 - Show the Goalrail after-state in `goalrail` mode with `manual_review`, owner, reason, and audit evidence
 - Keep tomorrow's golden path fully inside the browser with an in-app artifact viewer
 - Add a Russian-localized `/ru` route so the same UI-only demo works for Russian-speaking audiences
+- Keep the normal UI buyer-facing by moving presenter hints out of the browser and into docs
 
 ## Recent achievements
 
@@ -25,6 +26,7 @@
 - Added dynamic Current evidence so proof/readout can be shown next to live request evidence
 - Extended smoke coverage to validate baseline direct approval and Goalrail review-gated approval
 - Added path-based locale switching so English stays on `/` and Russian runs on `/ru`
+- Polished the flow panel so the normal UI stays buyer-facing without presenter hints or file-path metadata
 
 ## Next steps
 

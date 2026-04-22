@@ -178,6 +178,14 @@ if (await exists(localePath)) {
   if (!localeSource.includes('pathname === "/ru"') && !localeSource.includes('startsWith("/ru/")')) {
     failures.push("apps/web/src/locale.ts does not resolve the /ru path.");
   }
+
+  if (!localeSource.includes('goalrailArtifacts: "Goalrail flow"')) {
+    failures.push('apps/web/src/locale.ts does not expose the buyer-facing "Goalrail flow" label.');
+  }
+
+  if (!localeSource.includes('demoMode: "Workflow profile"')) {
+    failures.push('apps/web/src/locale.ts does not expose the buyer-facing "Workflow profile" label.');
+  }
 }
 
 if (await exists(appPath)) {
@@ -197,6 +205,14 @@ if (await exists(appPath)) {
 
   if (!appSource.includes("getPathForLocale")) {
     failures.push("apps/web/src/App.tsx does not route locale changes to /ru.");
+  }
+
+  if (appSource.includes("presenterNote")) {
+    failures.push("apps/web/src/App.tsx still renders presenter-facing notes in the normal UI.");
+  }
+
+  if (appSource.includes("artifactPath")) {
+    failures.push("apps/web/src/App.tsx still renders artifact paths in the normal UI.");
   }
 }
 

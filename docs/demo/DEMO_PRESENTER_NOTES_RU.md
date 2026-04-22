@@ -6,7 +6,7 @@
   `http://127.0.0.1:5173/ru`
 - Показать не “AI написал код”, а управляемый Goalrail-style flow:
   `business request -> clarification -> working contract -> bounded task plan -> implementation/preview -> inspectable proof -> pilot CTA`
-- Показать проблему и решение в одном запуске через переключатель demo mode.
+- Показать проблему и решение в одном запуске через переключатель workflow profile.
 - Подвести к bounded pilot, а не к обещанию “полной автоматизации”.
 
 ## 2. Что это демо НЕ обещает
@@ -43,12 +43,12 @@
 - “Это и есть before-state, который бизнес хочет поменять.”
 - “Я здесь специально не нажимаю approve — мне важно сначала показать сам дефект процесса.”
 
-### Шаг 3 — Goalrail artifacts panel
+### Шаг 3 — Goalrail flow
 
 Что показать:
-- `Goalrail artifacts`
+- `Goalrail flow`
 - шесть артефактных вкладок прямо внутри UI
-- presenter cue и artifact path metadata
+- buyer-facing callout и чистую структуру change package
 
 Что говорить:
 - “Мы продаём не магию, а operating flow: сначала понятный request, потом clarification, contract, tasks, proof, readout.”
@@ -56,7 +56,7 @@
 ### Шаг 4 — after-state
 
 Что показать:
-- переключение в **Goalrail slice**
+- переключение в **Review-gated flow**
 - banner про review gate
 - `Send to manual review`
 - `Manual review` status/count/filter
@@ -102,7 +102,7 @@
 - baseline warning: direct approval enabled
 - visible manual review step
 - actor / owner / reason in audit evidence
-- in-app Goalrail artifacts viewer как единый cockpit для request → proof → readout
+- in-app Goalrail flow как единый buyer-facing cockpit для request → proof → readout
 
 ## 5. Чего избегать
 
@@ -121,7 +121,7 @@
 Если что-то идёт шумно:
 - не импровизировать новые фичи
 - оставить UI как есть
-- открыть Goalrail artifacts
+- открыть Goalrail flow
 - markdown открывать только как fallback
 
 Фраза:
@@ -135,6 +135,7 @@
 - Показывать before/after контраст.
 - Закрывать разговор pilot CTA, а не платформой.
 - В обычном golden path не выходить из браузера.
+- Не показывать backstage-подсказки в UI; они должны оставаться только в docs.
 
 ## 8. Fallback ports
 
