@@ -7,10 +7,10 @@ const apiPort = process.env.PORT ?? process.env.API_PORT ?? "4311";
 const webPort = process.env.WEB_PORT ?? "5173";
 
 console.log("Goalrail Demo Sandbox");
-console.log("Current phase: Phase 3 baseline UI");
+console.log("Current phase: Phase 4.5 demo-ready baseline + proof artifacts");
 console.log(`API URL: http://127.0.0.1:${apiPort}`);
 console.log(`Web URL: http://127.0.0.1:${webPort}`);
-console.log("Frontend is a minimal baseline UI. Future review workflow is not implemented yet.");
+console.log("Frontend is a demo-ready baseline UI with proof artifacts. Phase 5 review workflow is not implemented yet.");
 
 const buildApi = spawn("npm", ["run", "api:build"], {
   cwd: rootDir,

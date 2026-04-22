@@ -14,19 +14,21 @@ This repo exists to support:
 
 ## Current phase
 
-Current phase: **Phase 3 baseline UI**
+Current phase: **Phase 4.5 demo-ready baseline + proof artifacts**
 
 What exists now:
 - npm workspace structure
 - minimal file-backed backend API
-- minimal baseline Web UI
+- demo-ready baseline Web UI
 - shared demo types
 - fake seed data
 - scenario manifests
 - deterministic reset and smoke scripts
+- workflow-change proof pack and presenter notes
+- dry-run checklist, show script, and troubleshooting docs
 
 What does **not** exist yet:
-- real frontend behavior
+- Phase 5 `manual_review` runtime workflow
 - database
 - auth
 - external integrations
