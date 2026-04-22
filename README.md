@@ -1,6 +1,6 @@
 # Goalrail Demo Sandbox
 
-This repository is the **executable demo sandbox** for Goalrail.
+This repository is the **executable deterministic demo sandbox** for Goalrail.
 
 It is **not** the Goalrail product implementation.
 
@@ -10,28 +10,31 @@ Product canon, positioning, and planning docs live in the sibling repository:
 This repo exists to support:
 - deterministic live demos
 - fake TrialOps sandbox data
-- future replayable demo assets
+- inspectable proof/readout artifacts
+- bounded pilot-style conversations
 
 ## Current phase
 
-Current phase: **Phase 4.5 demo-ready baseline + proof artifacts**
+Current phase: **Phase 5 demo-ready workflow-change slice**
 
 What exists now:
 - npm workspace structure
-- minimal file-backed backend API
-- demo-ready baseline Web UI
+- minimal file-backed Fastify backend
+- demo-ready React/Web UI
+- switchable demo workflow mode: `baseline` or `goalrail`
+- local `manual_review` runtime workflow for the Goalrail slice
 - shared demo types
 - fake seed data
-- scenario manifests
 - deterministic reset and smoke scripts
-- workflow-change proof pack and presenter notes
-- dry-run checklist, show script, and troubleshooting docs
+- workflow-change proof pack, proof sample, and readout sample
+- presenter docs for a 7-minute and longer demo path
 
-What does **not** exist yet:
-- Phase 5 `manual_review` runtime workflow
-- database
-- auth
-- external integrations
+What this repo still does **not** try to be:
+- the production Goalrail platform
+- a live AI coding demo
+- a generic workflow engine
+- a production SaaS application
+- a system with auth, database, external integrations, or multi-tenant architecture
 
 ## Commands
 
@@ -55,16 +58,17 @@ Default Web URL:
 
 This repo is a deterministic demo sandbox for:
 - founder-led live demos
+- bounded workflow-change stories
 - future guided replay demos
 
 It should not be confused with:
 - the Goalrail product repo
-- a production SaaS application
+- a production customer environment
 - a public self-serve AI execution system
 
 ## Data model posture
 
-- data is file-backed JSON for v0
+- data is file-backed JSON under `data/runtime/`
 - all data is fake
 - no real companies, no real customer data, no secrets
 - no database
@@ -79,7 +83,8 @@ The backend is intentionally small and boring:
 - no DB
 - no auth
 - no external services
-- no `manual_review` status yet
+- explicit if/else validation for the demo workflow
+- no generalized workflow engine abstraction
 
 ## Frontend posture
 
@@ -100,27 +105,49 @@ to the backend at `http://127.0.0.1:4311`
 
 No backend CORS dependency is used.
 
-## Demo baseline
+## Demo workflow modes
 
-Current baseline behavior:
-- trial requests can be moved directly to `approved`
-- dashboard counts update from backend data
-- audit log records status changes
-- this is intentionally the before-state for the future workflow-change scenario
+### `baseline` mode
 
-The future `manual_review` flow is not implemented yet by design.
+This is the before-state.
 
-Recommended verification flow:
+- direct approval remains possible
+- the UI warns that no second reviewer is required
+- presenter can show the weakness without checking out an old commit
+
+### `goalrail` mode
+
+This is the after-state / Goalrail slice.
+
+- adds `manual_review`
+- blocks direct approval from intake states
+- requires visible reviewer actor, assigned owner, and decision reason for review approval/rejection
+- exposes the workflow change in counts, filters, status chips, audit log, proof, and readout artifacts
+
+Default after `npm run reset`:
+- `workflowMode: baseline`
+
+## Recommended verification flow
 
 ```bash
 npm run reset
+npm run typecheck
+npm run api:build
+npm run web:build
 npm run smoke
+npm run dev
 ```
+
+`npm run smoke` resets the sandbox before and after its API checks so the runtime returns to baseline.
 
 ## Demo artifacts
 
 - primary scenario: `workflow-change`
 - proof pack: `demo/proof-packs/workflow-change/`
+- proof sample: `demo/proof-packs/workflow-change/proof-sample.md`
+- readout sample: `demo/proof-packs/workflow-change/readout-sample.md`
+- fast path: `docs/demo/DEMO_FAST_PATH_7MIN.md`
 - show script: `docs/demo/DEMO_SHOW_SCRIPT.md`
+- session prompts (RU): `docs/demo/DEMO_SESSION_PROMPTS_RU.md`
 - dry-run checklist: `docs/demo/DEMO_DRY_RUN_CHECKLIST.md`
 - Russian presenter notes: `docs/demo/DEMO_PRESENTER_NOTES_RU.md`

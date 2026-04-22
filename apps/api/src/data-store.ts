@@ -4,7 +4,13 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { RuntimeDataError } from "./errors.js";
-import type { AuditEvent, TrialRequest, TrialRequestStatus } from "./types.js";
+import type {
+  AuditEvent,
+  DemoModeState,
+  DemoWorkflowMode,
+  TrialRequest,
+  TrialRequestStatus
+} from "./types.js";
 
 const runtimeRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -17,12 +23,19 @@ const runtimeRoot = path.resolve(
 
 const trialRequestsPath = path.join(runtimeRoot, "trial-requests.json");
 const auditLogPath = path.join(runtimeRoot, "audit-log.json");
+const demoModePath = path.join(runtimeRoot, "demo-mode.json");
 
 export const allowedStatuses: TrialRequestStatus[] = [
   "new",
   "qualified",
+  "manual_review",
   "approved",
   "rejected"
+];
+
+export const allowedWorkflowModes: DemoWorkflowMode[] = [
+  "baseline",
+  "goalrail"
 ];
 
 const ensureRuntimeFile = async (filePath: string): Promise<void> => {
@@ -48,6 +61,17 @@ export const readTrialRequests = async (): Promise<TrialRequest[]> =>
 
 export const readAuditLog = async (): Promise<AuditEvent[]> =>
   readJsonFile<AuditEvent[]>(auditLogPath);
+
+export const readDemoMode = async (): Promise<DemoModeState> =>
+  readJsonFile<DemoModeState>(demoModePath);
+
+export const updateDemoMode = async (
+  workflowMode: DemoWorkflowMode
+): Promise<DemoModeState> => {
+  const nextState: DemoModeState = { workflowMode };
+  await writeJsonFile(demoModePath, nextState);
+  return nextState;
+};
 
 export const getStatusCounts = (
   requests: TrialRequest[]
@@ -76,6 +100,7 @@ export const updateTrialRequestStatus = async (input: {
   id: string;
   status: TrialRequestStatus;
   actor: string;
+  owner?: string;
   reason?: string;
 }): Promise<{ item: TrialRequest; auditEvent: AuditEvent } | null> => {
   const requests = await readTrialRequests();
@@ -88,7 +113,8 @@ export const updateTrialRequestStatus = async (input: {
   const current = requests[index];
   const updated: TrialRequest = {
     ...current,
-    status: input.status
+    status: input.status,
+    owner: input.owner ?? current.owner
   };
 
   requests[index] = updated;
@@ -102,6 +128,7 @@ export const updateTrialRequestStatus = async (input: {
     action: "status_changed",
     fromStatus: current.status,
     toStatus: input.status,
+    assignedOwner: input.owner,
     reason: input.reason,
     createdAt: new Date().toISOString()
   };

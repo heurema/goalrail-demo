@@ -1,5 +1,6 @@
 import type {
   AuditLogResponse,
+  DemoModeResponse,
   TrialRequestDetailResponse,
   TrialRequestStatus,
   TrialRequestsResponse
@@ -8,7 +9,8 @@ import type {
 class ApiError extends Error {
   constructor(
     message: string,
-    public readonly status: number
+    public readonly status: number,
+    public readonly code?: string
   ) {
     super(message);
     this.name = "ApiError";
@@ -17,12 +19,18 @@ class ApiError extends Error {
 
 const readJson = async <T>(input: RequestInfo, init?: RequestInit): Promise<T> => {
   const response = await fetch(input, init);
-  const payload = await response.json();
+  const payload = (await response.json()) as
+    | {
+        error?: string;
+        message?: string;
+      }
+    | undefined;
 
   if (!response.ok) {
     throw new ApiError(
       payload?.message ?? "API request failed",
-      response.status
+      response.status,
+      payload?.error
     );
   }
 
@@ -40,7 +48,9 @@ export const fetchTrialRequest = (
 export const updateTrialRequestStatus = (input: {
   id: string;
   status: TrialRequestStatus;
-  reason: string;
+  actor: string;
+  owner?: string;
+  reason?: string;
 }): Promise<TrialRequestDetailResponse> =>
   readJson<TrialRequestDetailResponse>(`/api/trial-requests/${input.id}/status`, {
     method: "PATCH",
@@ -49,10 +59,27 @@ export const updateTrialRequestStatus = (input: {
     },
     body: JSON.stringify({
       status: input.status,
-      actor: "demo.presenter",
-      reason: input.reason.trim() || undefined
+      actor: input.actor.trim(),
+      owner: input.owner?.trim() || undefined,
+      reason: input.reason?.trim() || undefined
     })
   });
 
 export const fetchAuditLog = (): Promise<AuditLogResponse> =>
   readJson<AuditLogResponse>("/api/audit-log");
+
+export const fetchDemoMode = (): Promise<DemoModeResponse> =>
+  readJson<DemoModeResponse>("/api/demo-mode");
+
+export const updateDemoMode = (
+  workflowMode: DemoModeResponse["workflowMode"]
+): Promise<DemoModeResponse> =>
+  readJson<DemoModeResponse>("/api/demo-mode", {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ workflowMode })
+  });
+
+export { ApiError };

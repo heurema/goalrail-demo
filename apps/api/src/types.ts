@@ -1,4 +1,15 @@
-export type TrialRequestStatus = "new" | "qualified" | "approved" | "rejected";
+export type TrialRequestStatus =
+  | "new"
+  | "qualified"
+  | "manual_review"
+  | "approved"
+  | "rejected";
+
+export type DemoWorkflowMode = "baseline" | "goalrail";
+
+export interface DemoModeState {
+  workflowMode: DemoWorkflowMode;
+}
 
 export interface TrialRequest {
   id: string;
@@ -19,6 +30,7 @@ export interface AuditEvent {
   action: "status_changed";
   fromStatus: TrialRequestStatus;
   toStatus: TrialRequestStatus;
+  assignedOwner?: string;
   reason?: string;
   createdAt: string;
 }

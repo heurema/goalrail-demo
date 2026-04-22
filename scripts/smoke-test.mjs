@@ -1,26 +1,44 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
+const execFileAsync = promisify(execFile);
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const seedPath = path.join(rootDir, "data", "seed.json");
-const trialRequestsRuntimePath = path.join(rootDir, "data", "runtime", "trial-requests.json");
-const auditLogRuntimePath = path.join(rootDir, "data", "runtime", "audit-log.json");
+const runtimeDir = path.join(rootDir, "data", "runtime");
+const trialRequestsRuntimePath = path.join(runtimeDir, "trial-requests.json");
+const auditLogRuntimePath = path.join(runtimeDir, "audit-log.json");
+const demoModeRuntimePath = path.join(runtimeDir, "demo-mode.json");
 const typesPath = path.join(rootDir, "packages", "shared", "src", "types.ts");
 const apiEntryPath = path.join(rootDir, "apps", "api", "dist", "main.js");
 const webDistHtmlPath = path.join(rootDir, "apps", "web", "dist", "index.html");
-const requiredStatuses = ["new", "qualified", "approved", "rejected"];
+const demoArtifactsPath = path.join(rootDir, "apps", "web", "src", "demoArtifacts.ts");
+const requiredStatusKeys = [
+  "new",
+  "qualified",
+  "manual_review",
+  "approved",
+  "rejected"
+];
+const seedRequiredStatuses = ["new", "qualified", "approved", "rejected"];
 const scenarioFiles = [
   "workflow-change.yaml",
   "field-change.yaml",
   "bugfix.yaml",
   "policy-review.yaml"
 ];
+const requiredFiles = [
+  "demo/proof-packs/workflow-change/proof-sample.md",
+  "demo/proof-packs/workflow-change/readout-sample.md",
+  "docs/demo/DEMO_FAST_PATH_7MIN.md",
+  "apps/web/src/demoArtifacts.ts"
+];
 const envFiles = [".env", ".env.local", ".env.development", ".env.production"];
-
 const failures = [];
 
 const exists = async (filePath) => {
@@ -31,6 +49,15 @@ const exists = async (filePath) => {
     return false;
   }
 };
+
+const runReset = async () => {
+  await execFileAsync("node", ["scripts/reset-demo.mjs"], {
+    cwd: rootDir
+  });
+};
+
+const readJsonFile = async (filePath) =>
+  JSON.parse(await readFile(filePath, "utf8"));
 
 if (!(await exists(seedPath))) {
   failures.push("Missing data/seed.json.");
@@ -53,10 +80,16 @@ if (!seed || !Array.isArray(seed.trialRequests)) {
   }
 
   const seenStatuses = new Set(seed.trialRequests.map((request) => request?.status));
-  for (const status of requiredStatuses) {
+  for (const status of seedRequiredStatuses) {
     if (!seenStatuses.has(status)) {
       failures.push(`Missing required seed status: ${status}.`);
     }
+  }
+}
+
+for (const requiredFile of requiredFiles) {
+  if (!(await exists(path.join(rootDir, requiredFile)))) {
+    failures.push(`Missing required file: ${requiredFile}.`);
   }
 }
 
@@ -88,13 +121,9 @@ for (const scenarioFile of scenarioFiles) {
   }
 }
 
-if (!(await exists(path.join(rootDir, "demo", "scenarios", "workflow-change.yaml")))) {
-  failures.push("Missing primary scenario file: demo/scenarios/workflow-change.yaml.");
+if (!(await exists(typesPath))) {
+  failures.push("Missing shared types file: packages/shared/src/types.ts.");
 }
-
-  if (!(await exists(typesPath))) {
-    failures.push("Missing shared types file: packages/shared/src/types.ts.");
-  }
 
 if (!(await exists(apiEntryPath))) {
   failures.push("Missing built API entry: apps/api/dist/main.js. Run npm run api:build first.");
@@ -104,14 +133,25 @@ if (!(await exists(webDistHtmlPath))) {
   failures.push("Missing frontend build artifact: apps/web/dist/index.html. Run npm run web:build first.");
 }
 
-if (!(await exists(trialRequestsRuntimePath)) || !(await exists(auditLogRuntimePath))) {
-  failures.push("Run npm run reset first.");
-}
-
 for (const envFile of envFiles) {
   if (await exists(path.join(rootDir, envFile))) {
     failures.push(`Unexpected env file present: ${envFile}.`);
   }
+}
+
+await runReset();
+
+if (
+  !(await exists(trialRequestsRuntimePath)) ||
+  !(await exists(auditLogRuntimePath)) ||
+  !(await exists(demoModeRuntimePath))
+) {
+  failures.push("Runtime files were not recreated by npm run reset.");
+}
+
+const demoModeRuntime = await readJsonFile(demoModeRuntimePath);
+if (demoModeRuntime.workflowMode !== "baseline") {
+  failures.push("Reset did not restore baseline workflow mode.");
 }
 
 const port = process.env.SMOKE_PORT ?? "4312";
@@ -175,10 +215,14 @@ try {
   if (
     healthPayload.status !== "ok" ||
     healthPayload.service !== "trialops-api" ||
-    healthPayload.phase !== "2" ||
     healthPayload.dataStore !== "file-backed-json"
   ) {
     failures.push("GET /health returned an unexpected payload.");
+  }
+
+  const { payload: demoModePayload } = await readJsonResponse("/api/demo-mode");
+  if (demoModePayload.workflowMode !== "baseline") {
+    failures.push("GET /api/demo-mode did not return baseline after reset.");
   }
 
   const { payload: listPayload } = await readJsonResponse("/api/trial-requests");
@@ -186,57 +230,228 @@ try {
     failures.push("GET /api/trial-requests did not return 10 items.");
   }
 
-  const expectedStatusCounts = {
+  const expectedBaselineCounts = {
     new: 3,
     qualified: 3,
+    manual_review: 0,
     approved: 2,
     rejected: 2
   };
 
-  for (const status of requiredStatuses) {
-    if (listPayload.meta?.statusCounts?.[status] !== expectedStatusCounts[status]) {
-      failures.push(`Unexpected status count for ${status}.`);
+  for (const status of requiredStatusKeys) {
+    if (!(status in (listPayload.meta?.statusCounts ?? {}))) {
+      failures.push(`Missing statusCounts key for ${status}.`);
+      continue;
+    }
+
+    if (listPayload.meta?.statusCounts?.[status] !== expectedBaselineCounts[status]) {
+      failures.push(`Unexpected baseline status count for ${status}.`);
     }
   }
 
   const { response: detailResponse, payload: detailPayload } = await readJsonResponse(
-    "/api/trial-requests/tr_001"
+    "/api/trial-requests/tr_002"
   );
-  if (detailResponse.status !== 200 || detailPayload.item?.id !== "tr_001") {
-    failures.push("GET /api/trial-requests/tr_001 did not return the seeded request.");
+  if (detailResponse.status !== 200 || detailPayload.item?.id !== "tr_002") {
+    failures.push("GET /api/trial-requests/tr_002 did not return the seeded qualified request.");
   }
 
-  const { response: patchResponse, payload: patchPayload } = await readJsonResponse(
-    "/api/trial-requests/tr_001/status",
+  const baselineApproveReason = "Baseline smoke: direct approval is still allowed.";
+  const { response: baselineApproveResponse, payload: baselineApprovePayload } = await readJsonResponse(
+    "/api/trial-requests/tr_002/status",
     {
       method: "PATCH",
       headers: {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        status: "qualified",
+        status: "approved",
         actor: "demo.presenter",
-        reason: "Smoke test status update"
+        reason: baselineApproveReason
       })
     }
   );
 
-  if (patchResponse.status !== 200 || patchPayload.item?.status !== "qualified") {
-    failures.push("PATCH /api/trial-requests/tr_001/status did not update the status.");
+  if (
+    baselineApproveResponse.status !== 200 ||
+    baselineApprovePayload.item?.status !== "approved"
+  ) {
+    failures.push("Baseline direct approval did not succeed for a qualified request.");
   }
 
-  const { payload: auditPayload } = await readJsonResponse("/api/audit-log?requestId=tr_001");
+  const { payload: baselineAuditPayload } = await readJsonResponse(
+    "/api/audit-log?requestId=tr_002"
+  );
   if (
-    !Array.isArray(auditPayload.items) ||
-    !auditPayload.items.some(
+    !Array.isArray(baselineAuditPayload.items) ||
+    !baselineAuditPayload.items.some(
       (item) =>
-        item.requestId === "tr_001" &&
-        item.action === "status_changed" &&
-        item.fromStatus === "new" &&
-        item.toStatus === "qualified"
+        item.requestId === "tr_002" &&
+        item.fromStatus === "qualified" &&
+        item.toStatus === "approved" &&
+        item.reason === baselineApproveReason
     )
   ) {
-    failures.push("GET /api/audit-log did not include the expected status_changed event.");
+    failures.push("Baseline audit log did not capture direct approval evidence.");
+  }
+
+  const { response: goalrailModeResponse, payload: goalrailModePayload } =
+    await readJsonResponse("/api/demo-mode", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ workflowMode: "goalrail" })
+    });
+
+  if (
+    goalrailModeResponse.status !== 200 ||
+    goalrailModePayload.workflowMode !== "goalrail"
+  ) {
+    failures.push("PATCH /api/demo-mode did not switch to goalrail.");
+  }
+
+  const { response: blockedApproveResponse, payload: blockedApprovePayload } =
+    await readJsonResponse("/api/trial-requests/tr_005/status", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "approved",
+        actor: "demo.presenter"
+      })
+    });
+
+  if (
+    blockedApproveResponse.status !== 400 ||
+    blockedApprovePayload.error !== "review_required"
+  ) {
+    failures.push("Goalrail mode did not block direct approval from qualified with review_required.");
+  }
+
+  const reviewReason = "Ready for review before provisioning.";
+  const { response: sendToReviewResponse, payload: sendToReviewPayload } =
+    await readJsonResponse("/api/trial-requests/tr_005/status", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "manual_review",
+        actor: "demo.presenter",
+        reason: reviewReason
+      })
+    });
+
+  if (
+    sendToReviewResponse.status !== 200 ||
+    sendToReviewPayload.item?.status !== "manual_review"
+  ) {
+    failures.push("Qualified request did not move into manual_review in goalrail mode.");
+  }
+
+  const { payload: reviewListPayload } = await readJsonResponse("/api/trial-requests");
+  if (reviewListPayload.meta?.statusCounts?.manual_review !== 1) {
+    failures.push("Status counts did not reflect the manual_review request.");
+  }
+
+  const { response: missingOwnerResponse, payload: missingOwnerPayload } =
+    await readJsonResponse("/api/trial-requests/tr_005/status", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "approved",
+        actor: "demo.presenter",
+        reason: "Review complete without owner should fail."
+      })
+    });
+
+  if (
+    missingOwnerResponse.status !== 400 ||
+    missingOwnerPayload.error !== "owner_required"
+  ) {
+    failures.push("Approving from manual_review without owner did not return owner_required.");
+  }
+
+  const { response: missingReasonResponse, payload: missingReasonPayload } =
+    await readJsonResponse("/api/trial-requests/tr_005/status", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "approved",
+        actor: "demo.presenter",
+        owner: "R. Singh"
+      })
+    });
+
+  if (
+    missingReasonResponse.status !== 400 ||
+    missingReasonPayload.error !== "reason_required"
+  ) {
+    failures.push("Approving from manual_review without reason did not return reason_required.");
+  }
+
+  const reviewApprovalReason =
+    "Manual review completed. Owner assigned and decision reason captured before approval.";
+  const { response: reviewedApproveResponse, payload: reviewedApprovePayload } =
+    await readJsonResponse("/api/trial-requests/tr_005/status", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "approved",
+        actor: "demo.presenter",
+        owner: "R. Singh",
+        reason: reviewApprovalReason
+      })
+    });
+
+  if (
+    reviewedApproveResponse.status !== 200 ||
+    reviewedApprovePayload.item?.status !== "approved" ||
+    reviewedApprovePayload.item?.owner !== "R. Singh"
+  ) {
+    failures.push("Approving from manual_review with owner and reason did not succeed.");
+  }
+
+  const { payload: reviewedAuditPayload } = await readJsonResponse(
+    "/api/audit-log?requestId=tr_005"
+  );
+  if (
+    !Array.isArray(reviewedAuditPayload.items) ||
+    !reviewedAuditPayload.items.some(
+      (item) =>
+        item.requestId === "tr_005" &&
+        item.action === "status_changed" &&
+        item.fromStatus === "manual_review" &&
+        item.toStatus === "approved" &&
+        item.actor === "demo.presenter" &&
+        item.assignedOwner === "R. Singh" &&
+        item.reason === reviewApprovalReason
+    )
+  ) {
+    failures.push("Audit log did not include actor, owner, and reason for the review approval.");
+  }
+
+  const { payload: finalListPayload } = await readJsonResponse("/api/trial-requests");
+  const expectedFinalCounts = {
+    new: 3,
+    qualified: 1,
+    manual_review: 0,
+    approved: 4,
+    rejected: 2
+  };
+
+  for (const status of requiredStatusKeys) {
+    if (finalListPayload.meta?.statusCounts?.[status] !== expectedFinalCounts[status]) {
+      failures.push(`Unexpected final status count for ${status}.`);
+    }
   }
 
   const { response: invalidStatusResponse, payload: invalidStatusPayload } =
@@ -269,6 +484,8 @@ try {
     serverProcess.kill("SIGTERM");
     await sleep(100);
   }
+
+  await runReset();
 }
 
 if (failures.length > 0) {
@@ -283,6 +500,6 @@ console.log("Smoke test passed.");
 console.log(`Seed file: data/seed.json`);
 console.log(`Trial requests: ${seed.trialRequests.length}`);
 console.log(`Scenarios checked: ${scenarioFiles.length}`);
-console.log(`Runtime files: data/runtime/trial-requests.json, data/runtime/audit-log.json`);
-console.log(`Frontend build artifact: apps/web/dist/index.html`);
-console.log(`API checks: /health, list, detail, patch status, audit log, invalid status, missing request`);
+console.log(`Runtime files: data/runtime/trial-requests.json, data/runtime/audit-log.json, data/runtime/demo-mode.json`);
+console.log(`Required artifacts: ${requiredFiles.length}`);
+console.log(`API checks: /health, /api/demo-mode, list, detail, baseline approval, goalrail review gate, review approval validation, audit log, invalid status, missing request`);

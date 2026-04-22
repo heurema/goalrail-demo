@@ -2,11 +2,11 @@
 
 ## Before-demo checklist
 
-- [ ] Repo is on the expected baseline branch/commit
-- [ ] No unexpected local changes
+- [ ] Repo is on the expected demo branch/commit
+- [ ] No unexpected local changes beyond planned demo files
 - [ ] Ports `4311` and `5173` are free
 - [ ] Terminal windows are ready
-- [ ] Proof pack files are easy to open
+- [ ] Proof sample and readout sample are easy to open
 
 ## App startup checklist
 
@@ -17,19 +17,41 @@ npm run reset
 npm run dev
 ```
 
+Optional confidence checks before the meeting:
+
+```bash
+npm run typecheck
+npm run api:build
+npm run web:build
+npm run smoke
+```
+
 - [ ] API starts on `http://127.0.0.1:4311`
 - [ ] Web starts on `http://127.0.0.1:5173`
 - [ ] UI loads in the browser
+- [ ] Demo mode defaults to **Baseline**
+- [ ] Fallback run is known if default ports are busy: `API_PORT=4411 WEB_PORT=5174 npm run dev`
 
-## Baseline UI checklist
+## Baseline / before-state checklist
 
-- [ ] Header is visible
+- [ ] Top-bar demo mode switcher is visible
 - [ ] Dashboard counts are visible
-- [ ] Request list is populated
-- [ ] Selecting a request opens detail
-- [ ] Status update form is visible
-- [ ] Audit log panel is visible
-- [ ] Direct approval is still possible in the baseline UI
+- [ ] `Manual review` card/filter exists (count may be `0`)
+- [ ] Selecting a qualified request opens detail
+- [ ] Baseline warning is visible: direct approval enabled
+- [ ] `Approve trial` is available directly in baseline mode
+
+## Goalrail / after-state checklist
+
+- [ ] `Goalrail flow` button opens the overlay
+- [ ] Switching to **Goalrail slice** works without reload
+- [ ] Goalrail banner appears
+- [ ] `Send to manual review` is visible for intake requests
+- [ ] Manual review status chip/filter/count is visible
+- [ ] `Manual review` count is shown before final approval
+- [ ] Review form shows reviewer actor, owner, and reason fields
+- [ ] `Approve after review` works only with owner + reason
+- [ ] Audit log shows actor, status transition, owner, reason, timestamp
 
 ## Artifact checklist
 
@@ -37,15 +59,15 @@ npm run dev
 - [ ] `clarification-questions.md` opens cleanly
 - [ ] `contract-draft.md` opens cleanly
 - [ ] `task-plan.md` opens cleanly
-- [ ] `proof-template.md` opens cleanly
-- [ ] `readout-template.md` opens cleanly
-- [ ] `docs/demo/DEMO_SHOW_SCRIPT.md` is accessible during the demo
+- [ ] `proof-sample.md` opens cleanly
+- [ ] `readout-sample.md` opens cleanly
+- [ ] `docs/demo/DEMO_FAST_PATH_7MIN.md` is accessible during the demo
 
 ## Failure fallback checklist
 
-- [ ] If UI becomes unreliable, continue with the proof pack only
-- [ ] If live AI is unavailable, continue with prepared artifacts
-- [ ] If smoke was run recently, reset before showing baseline counts again
+- [ ] If UI becomes noisy, continue with the Goalrail flow overlay + proof/readout samples
+- [ ] If smoke was run recently, `npm run reset` before the meeting
+- [ ] Keep the message focused on bounded flow, not automation theatrics
 
 ## Reset-after-demo checklist
 
@@ -57,4 +79,5 @@ npm run reset
 
 - [ ] Runtime files restored to baseline
 - [ ] Audit log cleared
+- [ ] Demo mode returned to `baseline`
 - [ ] Baseline counts match expected seed

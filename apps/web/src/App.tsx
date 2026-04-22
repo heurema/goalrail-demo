@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  ApiError,
   fetchAuditLog,
+  fetchDemoMode,
   fetchTrialRequest,
   fetchTrialRequests,
+  updateDemoMode,
   updateTrialRequestStatus
 } from "./api.js";
+import { demoArtifactSteps } from "./demoArtifacts.js";
 import type {
   AuditEvent,
+  DemoWorkflowMode,
   TrialRequest,
   TrialRequestStatus,
   TrialRequestsResponse
@@ -24,28 +29,20 @@ type MetricTone = "up" | "down" | "flat";
 
 type TimelineTone = "accent" | "ok" | "warn" | "default";
 
-type TimelineEntry =
-  | {
-      id: string;
-      tone: TimelineTone;
-      kind: "status";
-      actor: string;
-      createdAt: string;
-      fromStatus: TrialRequestStatus;
-      toStatus: TrialRequestStatus;
-      note?: string;
-    }
-  | {
-      id: string;
-      tone: TimelineTone;
-      kind: "text";
-      actor: string;
-      createdAt: string;
-      prefix?: string;
-      emphasis?: string;
-      suffix?: string;
-      note?: string;
-    };
+type TimelineEntry = {
+  id: string;
+  tone: TimelineTone;
+  kind: "status" | "text";
+  actor: string;
+  createdAt: string;
+  fromStatus?: TrialRequestStatus;
+  toStatus?: TrialRequestStatus;
+  assignedOwner?: string;
+  note?: string;
+  prefix?: string;
+  emphasis?: string;
+  suffix?: string;
+};
 
 type TrialPresentation = {
   planLabel: string;
@@ -60,6 +57,7 @@ type TrialPresentation = {
 const statusOptions: TrialRequestStatus[] = [
   "new",
   "qualified",
+  "manual_review",
   "approved",
   "rejected"
 ];
@@ -68,6 +66,7 @@ const statusFilterOptions: StatusFilter[] = [
   "all",
   "new",
   "qualified",
+  "manual_review",
   "approved",
   "rejected"
 ];
@@ -79,6 +78,7 @@ const metricMeta: Record<
   total: { delta: "+4.1%", window: "7d", tone: "up" },
   new: { delta: "+18%", window: "24h", tone: "up" },
   qualified: { delta: "+2.3%", window: "7d", tone: "flat" },
+  manual_review: { delta: "review gate", window: "active", tone: "flat" },
   approved: { delta: "+6.8%", window: "7d", tone: "up" },
   rejected: { delta: "−1.4%", window: "7d", tone: "down" }
 };
@@ -86,6 +86,7 @@ const metricMeta: Record<
 const statusClassNames: Record<TrialRequestStatus, string> = {
   new: "s-new",
   qualified: "s-qual",
+  manual_review: "s-review",
   approved: "s-approved",
   rejected: "s-rejected"
 };
@@ -94,6 +95,7 @@ const metricLabels: Array<{ key: "total" | TrialRequestStatus; label: string }> 
   { key: "total", label: "Total" },
   { key: "new", label: "New" },
   { key: "qualified", label: "Qualified" },
+  { key: "manual_review", label: "Manual review" },
   { key: "approved", label: "Approved" },
   { key: "rejected", label: "Rejected" }
 ];
@@ -102,7 +104,10 @@ const formatStatusLabel = (value: TrialRequestStatus): string =>
   value.replace("_", " ");
 
 const formatStatusTitle = (value: TrialRequestStatus): string =>
-  value[0].toUpperCase() + value.slice(1).replace("_", " ");
+  value
+    .split("_")
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
 
 const formatRequestCode = (value: string): string => {
   const digits = value.replace(/\D/g, "").padStart(3, "0");
@@ -119,30 +124,29 @@ const formatCurrency = (value: number): string =>
     maximumFractionDigits: 0
   }).format(value);
 
-const formatAuditTime = (value: string): string =>
-  {
-    const timestamp = new Date(value);
-    const timeLabel = timestamp.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-    const now = new Date();
-    const isToday =
-      timestamp.getDate() === now.getDate() &&
-      timestamp.getMonth() === now.getMonth() &&
-      timestamp.getFullYear() === now.getFullYear();
+const formatAuditTime = (value: string): string => {
+  const timestamp = new Date(value);
+  const timeLabel = timestamp.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const now = new Date();
+  const isToday =
+    timestamp.getDate() === now.getDate() &&
+    timestamp.getMonth() === now.getMonth() &&
+    timestamp.getFullYear() === now.getFullYear();
 
-    if (isToday) {
-      return `Today · ${timeLabel}`;
-    }
+  if (isToday) {
+    return `Today · ${timeLabel}`;
+  }
 
-    const dateLabel = timestamp.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short"
-    });
+  const dateLabel = timestamp.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short"
+  });
 
-    return `${dateLabel} · ${timeLabel}`;
-  };
+  return `${dateLabel} · ${timeLabel}`;
+};
 
 const formatAge = (value: string): string => {
   const createdAt = new Date(value).getTime();
@@ -250,8 +254,25 @@ const getTrialPresentation = (item: TrialRequest): TrialPresentation => {
 
 const getDefaultReasonForStatus = (
   item: TrialRequest,
-  targetStatus: TrialRequestStatus
+  targetStatus: TrialRequestStatus,
+  workflowMode: DemoWorkflowMode
 ): string => {
+  if (workflowMode === "goalrail") {
+    switch (targetStatus) {
+      case "qualified":
+        return "Qualified for the Goalrail slice. Ready for manual review before provisioning.";
+      case "manual_review":
+        return "Ready for manual review before provisioning. Approval is blocked until review is complete.";
+      case "approved":
+        return "Manual review completed. Owner assigned and decision reason captured before approval.";
+      case "rejected":
+        return "Manual review completed. Request rejected with owner assignment and explicit decision reason.";
+      case "new":
+      default:
+        return "Returned to new for a bounded recheck before review.";
+    }
+  }
+
   if (item.segment === "smb") {
     switch (targetStatus) {
       case "approved":
@@ -260,6 +281,8 @@ const getDefaultReasonForStatus = (
         return "Outside the current pilot scope at this stage.";
       case "qualified":
         return "Strong ICP fit. Verified domain and core onboarding requirements.";
+      case "manual_review":
+        return "Manual review is not part of the baseline flow.";
       case "new":
       default:
         return "Initial intake complete. Waiting on qualification.";
@@ -274,6 +297,8 @@ const getDefaultReasonForStatus = (
         return "High-touch scope but no active pilot sponsor yet.";
       case "qualified":
         return "Strong ICP fit. Enterprise onboarding requirements are already understood.";
+      case "manual_review":
+        return "Manual review is not part of the baseline flow.";
       case "new":
       default:
         return "Initial intake captured. Awaiting qualification review.";
@@ -287,24 +312,51 @@ const getDefaultReasonForStatus = (
       return "Not enough urgency for a pilot this month.";
     case "qualified":
       return "Strong ICP fit. Verified domain and baseline requirements. Ready for the next review step.";
+    case "manual_review":
+      return "Manual review is not part of the baseline flow.";
     case "new":
     default:
       return "Initial intake complete. Waiting on qualification.";
   }
 };
 
-const getPrimaryActionLabel = (value: TrialRequestStatus): string => {
-  switch (value) {
+const getPrimaryActionLabel = (
+  currentStatus: TrialRequestStatus,
+  targetStatus: TrialRequestStatus,
+  workflowMode: DemoWorkflowMode
+): string => {
+  if (workflowMode === "goalrail") {
+    if (currentStatus === "manual_review" && targetStatus === "approved") {
+      return "Approve after review";
+    }
+
+    if (currentStatus === "manual_review" && targetStatus === "rejected") {
+      return "Reject after review";
+    }
+
+    if (targetStatus === "manual_review") {
+      return "Send to manual review";
+    }
+
+    if (targetStatus === "qualified") {
+      return "Mark as qualified";
+    }
+
+    return "Apply Goalrail decision";
+  }
+
+  switch (targetStatus) {
     case "approved":
       return "Approve trial";
     case "rejected":
       return "Save rejection";
     case "qualified":
       return "Mark as qualified";
+    case "manual_review":
+      return "Manual review unavailable";
     case "new":
-      return "Return to new";
     default:
-      return "Apply decision";
+      return "Return to new";
   }
 };
 
@@ -315,7 +367,9 @@ const getStatusTone = (value: TrialRequestStatus): TimelineTone => {
     case "rejected":
       return "warn";
     case "qualified":
+    case "manual_review":
       return "accent";
+    case "new":
     default:
       return "default";
   }
@@ -324,7 +378,7 @@ const getStatusTone = (value: TrialRequestStatus): TimelineTone => {
 const getTopNavCounts = (meta: TrialRequestsResponse["meta"] | null) => ({
   inbox: meta?.statusCounts.new ?? 0,
   trialRequests: meta?.total ?? 0,
-  provisioning: meta?.statusCounts.qualified ?? 0
+  provisioning: (meta?.statusCounts.qualified ?? 0) + (meta?.statusCounts.manual_review ?? 0)
 });
 
 const getPreferredSelectionId = (
@@ -344,12 +398,28 @@ const getPreferredSelectionId = (
 
   return (
     items.find((item) => item.status === "qualified")?.id ??
+    items.find((item) => item.status === "manual_review")?.id ??
     items[0]?.id ??
     null
   );
 };
 
-const getSuggestedNextStatus = (status: TrialRequestStatus): TrialRequestStatus => {
+const getSuggestedNextStatus = (
+  status: TrialRequestStatus,
+  workflowMode: DemoWorkflowMode
+): TrialRequestStatus => {
+  if (workflowMode === "goalrail") {
+    switch (status) {
+      case "new":
+      case "qualified":
+        return "manual_review";
+      case "manual_review":
+        return "approved";
+      default:
+        return status;
+    }
+  }
+
   switch (status) {
     case "new":
     case "qualified":
@@ -386,7 +456,8 @@ const matchesSearch = (item: TrialRequest, query: string): boolean => {
 
 const buildTimeline = (
   item: TrialRequest,
-  auditItems: AuditEvent[]
+  auditItems: AuditEvent[],
+  workflowMode: DemoWorkflowMode
 ): TimelineEntry[] => {
   const presentation = getTrialPresentation(item);
   const entries: TimelineEntry[] = [
@@ -423,6 +494,7 @@ const buildTimeline = (
         createdAt: audit.createdAt,
         fromStatus: audit.fromStatus,
         toStatus: audit.toStatus,
+        assignedOwner: audit.assignedOwner,
         note: audit.reason?.trim() || undefined
       }))
     );
@@ -435,24 +507,43 @@ const buildTimeline = (
       createdAt: addMinutes(item.createdAt, 15),
       fromStatus: "new",
       toStatus: item.status,
+      assignedOwner: item.owner ?? undefined,
       note:
         item.status === "approved"
-          ? "Approved directly in the baseline flow."
-          : undefined
+          ? workflowMode === "baseline"
+            ? "Approved directly in the baseline flow."
+            : "Approved after manual review in the Goalrail slice."
+          : item.status === "manual_review"
+            ? "Moved into manual review before approval."
+            : undefined
     });
   }
 
-  entries.push({
-    id: `${item.id}-policy`,
-    tone: "warn",
-    kind: "text",
-    actor: "policy.baseline",
-    createdAt: addMinutes(item.createdAt, 19),
-    emphasis: "Policy notice",
-    suffix: " · eligible for direct approval",
-    note:
-      "No second reviewer configured — a single operator can approve and provision this trial."
-  });
+  if (workflowMode === "baseline") {
+    entries.push({
+      id: `${item.id}-policy`,
+      tone: "warn",
+      kind: "text",
+      actor: "policy.baseline",
+      createdAt: addMinutes(item.createdAt, 19),
+      emphasis: "Policy notice",
+      suffix: " · eligible for direct approval",
+      note:
+        "No second reviewer configured — a single operator can approve and provision this trial."
+    });
+  } else {
+    entries.push({
+      id: `${item.id}-goalrail-policy`,
+      tone: "accent",
+      kind: "text",
+      actor: "policy.goalrail",
+      createdAt: addMinutes(item.createdAt, 19),
+      emphasis: "Goalrail slice active",
+      suffix: " · approval requires manual review",
+      note:
+        "Review decisions must show a reviewer actor, assigned owner, and explicit decision reason."
+    });
+  }
 
   if (item.owner) {
     entries.push({
@@ -461,7 +552,7 @@ const buildTimeline = (
       kind: "text",
       actor: item.owner,
       createdAt: addMinutes(item.createdAt, 21),
-      prefix: "Assigned to ",
+      prefix: "Assigned owner · ",
       emphasis: item.owner
     });
   }
@@ -469,8 +560,12 @@ const buildTimeline = (
   return entries.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
 };
 
+const isFinalStatus = (status: TrialRequestStatus): boolean =>
+  status === "approved" || status === "rejected";
+
 export default function App() {
   const [listData, setListData] = useState<TrialRequestsResponse | null>(null);
+  const [demoMode, setDemoMode] = useState<DemoWorkflowMode>("baseline");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<TrialRequest | null>(null);
   const [auditItems, setAuditItems] = useState<AuditEvent[]>([]);
@@ -478,21 +573,27 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [nextStatus, setNextStatus] = useState<TrialRequestStatus>("new");
   const [trialLength, setTrialLength] = useState("30 days");
+  const [actor, setActor] = useState("demo.presenter");
+  const [owner, setOwner] = useState("");
   const [reason, setReason] = useState("");
   const [reasonDirty, setReasonDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [modeUpdating, setModeUpdating] = useState(false);
+  const [flowPanelOpen, setFlowPanelOpen] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
-  const refreshListAndAudit = async (targetId?: string | null) => {
-    const [trialRequests, auditLog] = await Promise.all([
+  const refreshRuntime = async (targetId?: string | null) => {
+    const [trialRequests, auditLog, modeState] = await Promise.all([
       fetchTrialRequests(),
-      fetchAuditLog()
+      fetchAuditLog(),
+      fetchDemoMode()
     ]);
 
     setListData(trialRequests);
     setAuditItems(auditLog.items);
+    setDemoMode(modeState.workflowMode);
 
     const existingId = getPreferredSelectionId(
       trialRequests.items,
@@ -507,14 +608,12 @@ export default function App() {
     const load = async () => {
       try {
         setLoading(true);
-        await refreshListAndAudit();
+        await refreshRuntime();
       } catch (error) {
         setFeedback({
           kind: "error",
           message:
-            error instanceof Error
-              ? error.message
-              : "Failed to load baseline data."
+            error instanceof Error ? error.message : "Failed to load demo data."
         });
       } finally {
         setLoading(false);
@@ -529,7 +628,7 @@ export default function App() {
       return undefined;
     }
 
-    const timer = window.setTimeout(() => setFeedback(null), 3200);
+    const timer = window.setTimeout(() => setFeedback(null), 3600);
     return () => window.clearTimeout(timer);
   }, [feedback]);
 
@@ -568,13 +667,7 @@ export default function App() {
       try {
         setDetailLoading(true);
         const detail = await fetchTrialRequest(selectedId);
-        const presentation = getTrialPresentation(detail.item);
-        const suggestedStatus = getSuggestedNextStatus(detail.item.status);
         setSelectedItem(detail.item);
-        setNextStatus(suggestedStatus);
-        setTrialLength(presentation.trialLength);
-        setReason(getDefaultReasonForStatus(detail.item, suggestedStatus));
-        setReasonDirty(false);
       } catch (error) {
         setFeedback({
           kind: "error",
@@ -590,6 +683,21 @@ export default function App() {
 
     void loadDetail();
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!selectedItem) {
+      return;
+    }
+
+    const presentation = getTrialPresentation(selectedItem);
+    const suggestedStatus = getSuggestedNextStatus(selectedItem.status, demoMode);
+    setNextStatus(suggestedStatus);
+    setTrialLength(presentation.trialLength);
+    setActor("demo.presenter");
+    setOwner(selectedItem.owner ?? "");
+    setReason(getDefaultReasonForStatus(selectedItem, suggestedStatus, demoMode));
+    setReasonDirty(false);
+  }, [selectedItem, demoMode]);
 
   const navCounts = useMemo(() => getTopNavCounts(listData?.meta ?? null), [listData]);
 
@@ -607,15 +715,60 @@ export default function App() {
   );
 
   const timelineItems = useMemo(
-    () => (selectedItem ? buildTimeline(selectedItem, selectedAuditItems) : []),
-    [selectedItem, selectedAuditItems]
+    () => (selectedItem ? buildTimeline(selectedItem, selectedAuditItems, demoMode) : []),
+    [selectedItem, selectedAuditItems, demoMode]
   );
 
   const handlePlaceholderAction = (label: string) => {
     setFeedback({
       kind: "info",
-      message: `${label} is not implemented in the baseline demo.`
+      message: `${label} is not implemented in the deterministic demo.`
     });
+  };
+
+  const syncReasonForTargetStatus = (targetStatus: TrialRequestStatus) => {
+    if (!selectedItem) {
+      return;
+    }
+
+    const currentDefault = getDefaultReasonForStatus(selectedItem, nextStatus, demoMode);
+    setNextStatus(targetStatus);
+
+    if (!reasonDirty || reason.trim() === currentDefault.trim()) {
+      setReason(getDefaultReasonForStatus(selectedItem, targetStatus, demoMode));
+      setReasonDirty(false);
+    }
+  };
+
+  const handleModeChange = async (mode: DemoWorkflowMode) => {
+    if (mode === demoMode) {
+      return;
+    }
+
+    try {
+      setModeUpdating(true);
+      await updateDemoMode(mode);
+      const refreshedId = await refreshRuntime(selectedId);
+      if (refreshedId) {
+        const detail = await fetchTrialRequest(refreshedId);
+        setSelectedItem(detail.item);
+      }
+
+      setFeedback({
+        kind: "success",
+        message:
+          mode === "baseline"
+            ? "Baseline mode restored. Direct approval is visible again."
+            : "Goalrail slice active. Approval now requires manual review."
+      });
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Demo mode update failed."
+      });
+    } finally {
+      setModeUpdating(false);
+    }
   };
 
   const handleStatusUpdate = async (targetStatus = nextStatus) => {
@@ -624,30 +777,30 @@ export default function App() {
     }
 
     try {
-      const currentDefaultReason = getDefaultReasonForStatus(selectedItem, nextStatus);
+      const currentDefaultReason = getDefaultReasonForStatus(
+        selectedItem,
+        nextStatus,
+        demoMode
+      );
       const submissionReason =
         targetStatus !== nextStatus &&
         (!reasonDirty || reason.trim() === currentDefaultReason.trim())
-          ? getDefaultReasonForStatus(selectedItem, targetStatus)
+          ? getDefaultReasonForStatus(selectedItem, targetStatus, demoMode)
           : reason;
 
       setSubmitting(true);
       await updateTrialRequestStatus({
         id: selectedItem.id,
         status: targetStatus,
+        actor,
+        owner: owner.trim() || undefined,
         reason: submissionReason
       });
 
-      const refreshedId = await refreshListAndAudit(selectedItem.id);
+      const refreshedId = await refreshRuntime(selectedItem.id);
       if (refreshedId) {
         const detail = await fetchTrialRequest(refreshedId);
-        const presentation = getTrialPresentation(detail.item);
-        const suggestedStatus = getSuggestedNextStatus(detail.item.status);
         setSelectedItem(detail.item);
-        setNextStatus(suggestedStatus);
-        setTrialLength(presentation.trialLength);
-        setReason(getDefaultReasonForStatus(detail.item, suggestedStatus));
-        setReasonDirty(false);
       }
 
       setFeedback({
@@ -655,18 +808,30 @@ export default function App() {
         message: `${formatRequestCode(selectedItem.id)} updated to ${formatStatusTitle(targetStatus)}.`
       });
     } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Status update failed.";
+
       setFeedback({
         kind: "error",
-        message: error instanceof Error ? error.message : "Status update failed."
+        message
       });
     } finally {
       setSubmitting(false);
     }
   };
 
+  const baselineDecisionOptions = useMemo(
+    () => statusOptions.filter((status) => status !== "manual_review"),
+    []
+  );
+
   return (
     <>
-      <div className="app" data-screen-label="TrialOps Baseline Dashboard">
+      <div className="app" data-screen-label="TrialOps Workflow Change Demo">
         <aside className="sidebar">
           <div className="brand">
             <div className="brand-mark" aria-hidden="true" />
@@ -685,7 +850,7 @@ export default function App() {
           <nav className="nav" aria-label="Operations navigation">
             <NavItem label="Audit log" />
             <NavItem label="Policies" />
-            <NavItem label="Webhooks" />
+            <NavItem label="Proof pack" />
             <NavItem label="Reports" />
           </nav>
 
@@ -718,10 +883,16 @@ export default function App() {
               <span className="kbd-inline">⌘K</span>
             </label>
 
+            <DemoModeToggle
+              workflowMode={demoMode}
+              disabled={modeUpdating}
+              onChange={handleModeChange}
+            />
+
             <div className="top-actions">
               <div className="env-chip">
                 <span className="pulse" aria-hidden="true" />
-                production
+                deterministic local demo
               </div>
               <button
                 type="button"
@@ -735,27 +906,49 @@ export default function App() {
           </div>
 
           <section className="hero">
-            <h1>
-              Trial requests
-              <span className="flow-label">
-                <span className="dot" aria-hidden="true" />
-                Baseline flow · v0.14
-              </span>
-            </h1>
+            <div className="hero-copy">
+              <h1>
+                Trial requests
+                <span className={`flow-label ${demoMode === "goalrail" ? "goalrail" : "baseline"}`}>
+                  <span className="dot" aria-hidden="true" />
+                  {demoMode === "baseline"
+                    ? "Baseline flow · direct approval visible"
+                    : "Goalrail workflow slice · review gate active"}
+                </span>
+              </h1>
+              <p className="hero-subtitle">
+                {demoMode === "baseline"
+                  ? "Before-state: the sandbox still allows a single operator to approve a trial immediately."
+                  : "After-state: approval must pass through manual review with reviewer, owner, and decision reason."}
+              </p>
+            </div>
             <div className="hero-btns">
-              <button type="button" className="btn ghost" onClick={() => handlePlaceholderAction("Export")}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setFlowPanelOpen(true)}
+              >
+                Goalrail flow
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => handlePlaceholderAction("Export")}
+              >
                 Export
-              </button>
-              <button type="button" className="btn" onClick={() => handlePlaceholderAction("Filters")}>
-                Filters
-              </button>
-              <button type="button" className="btn primary" onClick={() => handlePlaceholderAction("New request")}>
-                New request
               </button>
             </div>
           </section>
 
-          <section className="metrics" aria-label="Baseline metrics">
+          {demoMode === "goalrail" ? (
+            <section className="goalrail-banner" aria-label="Goalrail slice active">
+              <div>
+                <b>Goalrail slice active.</b> Approval is blocked until the request enters manual review and a reviewer records owner plus reason.
+              </div>
+            </section>
+          ) : null}
+
+          <section className="metrics" aria-label="Workflow metrics">
             {metricLabels.map(({ key, label }) => {
               const config = metricMeta[key];
               const value =
@@ -800,13 +993,17 @@ export default function App() {
                   })}
                 </div>
                 <span className="grow" />
-                <button type="button" className="btn ghost table-sort" onClick={() => handlePlaceholderAction("Sort")}> 
+                <button
+                  type="button"
+                  className="btn ghost table-sort"
+                  onClick={() => handlePlaceholderAction("Sort")}
+                >
                   Sort · Age
                 </button>
               </div>
 
               {loading ? (
-                <div className="table-empty">Loading baseline requests…</div>
+                <div className="table-empty">Loading demo requests…</div>
               ) : filteredItems.length === 0 ? (
                 <div className="table-empty">No requests match the current filters.</div>
               ) : (
@@ -851,10 +1048,7 @@ export default function App() {
                               <td className="num">{formatCount(presentation.seats)}</td>
                               <td className="money">{formatCurrency(presentation.mrr)}</td>
                               <td>
-                                <span className={`status ${statusClassNames[item.status]}`}>
-                                  <span className="d" aria-hidden="true" />
-                                  {formatStatusTitle(item.status)}
-                                </span>
+                                <StatusChip status={item.status} />
                               </td>
                               <td className="age">{formatAge(item.createdAt)}</td>
                             </tr>
@@ -866,16 +1060,23 @@ export default function App() {
 
                   <div className="table-foot">
                     <div>
-                      Showing <b>{formatCount(filteredItems.length)}</b> of <b>{formatCount(listData?.meta.total ?? filteredItems.length)}</b>
+                      Showing <b>{formatCount(filteredItems.length)}</b> of{" "}
+                      <b>{formatCount(listData?.meta.total ?? filteredItems.length)}</b>
                     </div>
                     <div className="pager">
-                      <button type="button" aria-label="Previous page">‹</button>
-                      <button type="button" className="on">1</button>
+                      <button type="button" aria-label="Previous page">
+                        ‹
+                      </button>
+                      <button type="button" className="on">
+                        1
+                      </button>
                       <button type="button">2</button>
                       <button type="button">3</button>
                       <button type="button">…</button>
                       <button type="button">13</button>
-                      <button type="button" aria-label="Next page">›</button>
+                      <button type="button" aria-label="Next page">
+                        ›
+                      </button>
                     </div>
                   </div>
                 </>
@@ -897,6 +1098,7 @@ export default function App() {
                         </span>
                       </div>
                       <span className="grow" />
+                      <StatusChip status={selectedItem.status} compact />
                       <button
                         type="button"
                         className="icon-btn"
@@ -926,7 +1128,9 @@ export default function App() {
                         <div className="l">Owner</div>
                         <div className="v">
                           {selectedItem.owner ?? "Unassigned"}
-                          <span className="muted">· baseline ops queue</span>
+                          <span className="muted">
+                            · {demoMode === "baseline" ? "baseline ops queue" : "must be visible before review approval"}
+                          </span>
                         </div>
 
                         <div className="l">Region</div>
@@ -934,6 +1138,11 @@ export default function App() {
 
                         <div className="l">Source</div>
                         <div className="v">Inbound · {selectedPresentation.source}</div>
+
+                        <div className="l">Mode</div>
+                        <div className="v">
+                          {demoMode === "baseline" ? "Baseline / before-state" : "Goalrail slice / review gate"}
+                        </div>
                       </div>
                     </div>
 
@@ -942,101 +1151,220 @@ export default function App() {
                       {selectedItem.notes.join(" ")}
                     </div>
 
-                    <div className="form">
-                      <div className="form-h">
-                        <h4>Update status</h4>
-                        <span className="hint">Written to audit log</span>
-                      </div>
+                    {demoMode === "baseline" ? (
+                      <div className="form">
+                        <div className="form-h">
+                          <h4>Update status</h4>
+                          <span className="hint">Written to audit log</span>
+                        </div>
 
-                      <div className="form-row">
-                        <div className="field">
-                          <label htmlFor="decision-select">Decision</label>
-                          <select
-                            id="decision-select"
-                            className="select"
-                            value={nextStatus}
-                            onChange={(event) => {
-                              const updatedStatus = event.target.value as TrialRequestStatus;
-                              const currentDefault = selectedItem
-                                ? getDefaultReasonForStatus(selectedItem, nextStatus)
-                                : "";
-
-                              setNextStatus(updatedStatus);
-
-                              if (
-                                selectedItem &&
-                                (!reasonDirty || reason.trim() === currentDefault.trim())
-                              ) {
-                                setReason(
-                                  getDefaultReasonForStatus(selectedItem, updatedStatus)
-                                );
-                                setReasonDirty(false);
+                        <div className="form-row">
+                          <div className="field">
+                            <label htmlFor="decision-select">Decision</label>
+                            <select
+                              id="decision-select"
+                              className="select"
+                              value={nextStatus}
+                              onChange={(event) =>
+                                syncReasonForTargetStatus(
+                                  event.target.value as TrialRequestStatus
+                                )
                               }
-                            }}
-                          >
-                            {statusOptions.map((status) => (
-                              <option key={status} value={status}>
-                                {getPrimaryActionLabel(status)}
-                              </option>
-                            ))}
-                          </select>
+                            >
+                              {baselineDecisionOptions.map((status) => (
+                                <option key={status} value={status}>
+                                  {getPrimaryActionLabel(
+                                    selectedItem.status,
+                                    status,
+                                    demoMode
+                                  )}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="field">
+                            <label htmlFor="trial-length">Trial length</label>
+                            <select
+                              id="trial-length"
+                              className="select"
+                              value={trialLength}
+                              onChange={(event) => setTrialLength(event.target.value)}
+                            >
+                              <option>30 days</option>
+                              <option>14 days</option>
+                              <option>60 days</option>
+                            </select>
+                          </div>
                         </div>
 
                         <div className="field">
-                          <label htmlFor="trial-length">Trial length</label>
-                          <select
-                            id="trial-length"
-                            className="select"
-                            value={trialLength}
-                            onChange={(event) => setTrialLength(event.target.value)}
+                          <label htmlFor="baseline-reason">Internal reason</label>
+                          <textarea
+                            id="baseline-reason"
+                            placeholder="Optional note…"
+                            value={reason}
+                            onChange={(event) => {
+                              setReason(event.target.value);
+                              setReasonDirty(true);
+                            }}
+                          />
+                        </div>
+
+                        <div className="warn-inline">
+                          <WarnIcon />
+                          <div>
+                            <b>Direct approval enabled.</b> Approve provisions the trial immediately — no second reviewer required.
+                          </div>
+                        </div>
+
+                        <div className="actions">
+                          <span className="grow" />
+                          <button
+                            type="button"
+                            className="btn danger-ghost"
+                            onClick={() => void handleStatusUpdate("rejected")}
+                            disabled={submitting || selectedItem.status === "rejected"}
                           >
-                            <option>30 days</option>
-                            <option>14 days</option>
-                            <option>60 days</option>
-                          </select>
+                            Reject
+                          </button>
+                          <button
+                            type="button"
+                            className="btn approve"
+                            onClick={() => void handleStatusUpdate()}
+                            disabled={submitting || nextStatus === selectedItem.status}
+                          >
+                            {submitting
+                              ? "Applying…"
+                              : getPrimaryActionLabel(
+                                  selectedItem.status,
+                                  nextStatus,
+                                  demoMode
+                                )}
+                          </button>
                         </div>
                       </div>
+                    ) : selectedItem.status === "manual_review" ? (
+                      <div className="form">
+                        <div className="form-h">
+                          <h4>Review decision</h4>
+                          <span className="hint">Reviewer, owner, and reason are required</span>
+                        </div>
 
-                      <div className="field">
-                        <label htmlFor="internal-reason">Internal reason</label>
-                        <textarea
-                          id="internal-reason"
-                          placeholder="Optional note…"
-                          value={reason}
-                          onChange={(event) => {
-                            setReason(event.target.value);
-                            setReasonDirty(true);
-                          }}
-                        />
-                      </div>
+                        <div className="form-row review-grid">
+                          <div className="field">
+                            <label htmlFor="reviewer-actor">Reviewer</label>
+                            <input
+                              id="reviewer-actor"
+                              className="text-input"
+                              value={actor}
+                              onChange={(event) => setActor(event.target.value)}
+                              placeholder="demo.presenter"
+                            />
+                          </div>
+                          <div className="field">
+                            <label htmlFor="review-owner">Assigned owner</label>
+                            <input
+                              id="review-owner"
+                              className="text-input"
+                              value={owner}
+                              onChange={(event) => setOwner(event.target.value)}
+                              placeholder="R. Singh"
+                            />
+                          </div>
+                        </div>
 
-                      <div className="warn-inline">
-                        <WarnIcon />
-                        <div>
-                          <b>Direct approval enabled.</b> Approve provisions the trial immediately — no second reviewer required.
+                        <div className="field">
+                          <label htmlFor="review-reason">Decision reason</label>
+                          <textarea
+                            id="review-reason"
+                            placeholder="Explain why the request is ready for approval or why it should be rejected."
+                            value={reason}
+                            onChange={(event) => {
+                              setReason(event.target.value);
+                              setReasonDirty(true);
+                            }}
+                          />
+                        </div>
+
+                        <div className="goalrail-inline">
+                          <div className="goalrail-inline-title">Manual review required</div>
+                          <div className="goalrail-inline-copy">
+                            The demo will reject approval until the reviewer actor, assigned owner, and decision reason are visible.
+                          </div>
+                        </div>
+
+                        <div className="actions">
+                          <span className="grow" />
+                          <button
+                            type="button"
+                            className="btn danger-ghost"
+                            onClick={() => void handleStatusUpdate("rejected")}
+                            disabled={submitting}
+                          >
+                            {submitting ? "Applying…" : "Reject after review"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn approve"
+                            onClick={() => void handleStatusUpdate("approved")}
+                            disabled={submitting}
+                          >
+                            {submitting ? "Applying…" : "Approve after review"}
+                          </button>
                         </div>
                       </div>
-
-                      <div className="actions">
-                        <span className="grow" />
-                        <button
-                          type="button"
-                          className="btn danger-ghost"
-                          onClick={() => void handleStatusUpdate("rejected")}
-                          disabled={submitting || selectedItem.status === "rejected"}
-                        >
-                          Reject
-                        </button>
-                        <button
-                          type="button"
-                          className="btn approve"
-                          onClick={() => void handleStatusUpdate()}
-                          disabled={submitting || nextStatus === selectedItem.status}
-                        >
-                          {submitting ? "Applying…" : getPrimaryActionLabel(nextStatus)}
-                        </button>
+                    ) : isFinalStatus(selectedItem.status) ? (
+                      <div className="final-state-card">
+                        <div className="final-state-head">
+                          <b>Final status ready for proof</b>
+                          <StatusChip status={selectedItem.status} compact />
+                        </div>
+                        <p>
+                          The Goalrail slice is now in a final state. Show the audit log, then open the proof and readout samples for the pilot CTA.
+                        </p>
+                        <ul>
+                          <li>Proof sample · demo/proof-packs/workflow-change/proof-sample.md</li>
+                          <li>Readout sample · demo/proof-packs/workflow-change/readout-sample.md</li>
+                        </ul>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="form">
+                        <div className="form-h">
+                          <h4>Goalrail review gate</h4>
+                          <span className="hint">Approval is blocked until review is completed</span>
+                        </div>
+
+                        <div className="review-gate-card">
+                          <div className="review-gate-title">Goalrail slice active</div>
+                          <div className="review-gate-copy">
+                            Direct approval is blocked in this mode. Move the request into <b>manual review</b> first, then complete the review decision with owner plus reason.
+                          </div>
+                        </div>
+
+                        <div className="actions split-actions">
+                          {selectedItem.status === "new" ? (
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              onClick={() => void handleStatusUpdate("qualified")}
+                              disabled={submitting}
+                            >
+                              {submitting ? "Applying…" : "Mark as qualified"}
+                            </button>
+                          ) : null}
+                          <span className="grow" />
+                          <button
+                            type="button"
+                            className="btn approve"
+                            onClick={() => void handleStatusUpdate("manual_review")}
+                            disabled={submitting}
+                          >
+                            {submitting ? "Applying…" : "Send to manual review"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="detail-empty">Select a trial request to inspect its detail.</div>
@@ -1047,7 +1375,7 @@ export default function App() {
                 <div className="panel-h">
                   <h3>Audit log</h3>
                   <span className="sub">
-                    {selectedItem ? formatRequestCode(selectedItem.id) : "Baseline"}
+                    {selectedItem ? formatRequestCode(selectedItem.id) : "Demo"}
                   </span>
                 </div>
 
@@ -1068,8 +1396,8 @@ export default function App() {
                         <div className="audit-body">
                           {item.kind === "status" ? (
                             <div className="audit-l1">
-                              Status <span className="tag">{formatStatusLabel(item.fromStatus)}</span> → {" "}
-                              <span className="tag">{formatStatusLabel(item.toStatus)}</span>
+                              Status <span className="tag">{formatStatusLabel(item.fromStatus!)}</span> →{" "}
+                              <span className="tag">{formatStatusLabel(item.toStatus!)}</span>
                             </div>
                           ) : (
                             <div className="audit-l1">
@@ -1082,6 +1410,9 @@ export default function App() {
                             <span className="actor">{item.actor}</span>
                             <span>{formatAuditTime(item.createdAt)}</span>
                           </div>
+                          {item.assignedOwner ? (
+                            <div className="audit-meta">Assigned owner · {item.assignedOwner}</div>
+                          ) : null}
                           {item.note ? <div className="audit-note">{item.note}</div> : null}
                         </div>
                       </div>
@@ -1093,6 +1424,14 @@ export default function App() {
           </section>
         </main>
       </div>
+
+      {flowPanelOpen ? (
+        <FlowDrawer
+          workflowMode={demoMode}
+          selectedItem={selectedItem}
+          onClose={() => setFlowPanelOpen(false)}
+        />
+      ) : null}
 
       {feedback ? (
         <div className={`feedback-toast ${feedback.kind}`}>{feedback.message}</div>
@@ -1109,6 +1448,123 @@ function NavItem(props: { label: string; count?: number; active?: boolean }) {
         <span className="count">{formatCount(props.count)}</span>
       ) : null}
     </a>
+  );
+}
+
+function DemoModeToggle(props: {
+  workflowMode: DemoWorkflowMode;
+  disabled?: boolean;
+  onChange: (mode: DemoWorkflowMode) => void;
+}) {
+  return (
+    <div className="demo-mode-switcher" aria-label="Demo mode switcher">
+      <div className="demo-mode-label">Demo mode</div>
+      <div className="demo-mode-buttons">
+        <button
+          type="button"
+          className={props.workflowMode === "baseline" ? "active" : undefined}
+          onClick={() => props.onChange("baseline")}
+          disabled={props.disabled}
+        >
+          <span className="mode-context">Before</span>
+          Baseline
+        </button>
+        <button
+          type="button"
+          className={props.workflowMode === "goalrail" ? "active" : undefined}
+          onClick={() => props.onChange("goalrail")}
+          disabled={props.disabled}
+        >
+          <span className="mode-context">After</span>
+          Goalrail slice
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StatusChip(props: { status: TrialRequestStatus; compact?: boolean }) {
+  return (
+    <span
+      className={`status ${statusClassNames[props.status]}${props.compact ? " compact" : ""}`}
+    >
+      <span className="d" aria-hidden="true" />
+      {formatStatusTitle(props.status)}
+    </span>
+  );
+}
+
+function FlowDrawer(props: {
+  workflowMode: DemoWorkflowMode;
+  selectedItem: TrialRequest | null;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flow-overlay" role="dialog" aria-modal="true" aria-label="Goalrail flow overlay">
+      <button
+        type="button"
+        className="flow-overlay-backdrop"
+        aria-label="Close Goalrail flow overlay"
+        onClick={props.onClose}
+      />
+      <aside className="flow-drawer">
+        <div className="flow-drawer-head">
+          <div>
+            <div className="flow-drawer-eyebrow">Goalrail flow</div>
+            <h2>Business request → proof</h2>
+            <p>
+              The sandbox stays deterministic, but the artifacts make the bounded delivery flow visible and inspectable.
+            </p>
+          </div>
+          <button type="button" className="icon-btn" onClick={props.onClose} title="Close">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <div className="flow-drawer-summary">
+          <div>
+            <span className="summary-label">Current mode</span>
+            <b>{props.workflowMode === "baseline" ? "Baseline / before-state" : "Goalrail slice / after-state"}</b>
+          </div>
+          <div>
+            <span className="summary-label">Selected request</span>
+            <b>
+              {props.selectedItem
+                ? `${formatRequestCode(props.selectedItem.id)} · ${formatStatusTitle(props.selectedItem.status)}`
+                : "No request selected"}
+            </b>
+          </div>
+        </div>
+
+        <div className="flow-chain" aria-hidden="true">
+          <span>Request</span>
+          <span>Clarify</span>
+          <span>Contract</span>
+          <span>Tasks</span>
+          <span>Proof</span>
+          <span>Readout</span>
+        </div>
+
+        <div className="flow-step-list">
+          {demoArtifactSteps.map((step, index) => (
+            <article key={step.id} className="flow-step-card">
+              <div className="flow-step-index">0{index + 1}</div>
+              <div className="flow-step-body">
+                <div className="flow-step-top">
+                  <h3>{step.title}</h3>
+                  <span className={`flow-step-status ${step.statusLabel}`}>{step.statusLabel}</span>
+                </div>
+                <p>{step.summary}</p>
+                <div className="flow-step-path">
+                  <span>Artifact path</span>
+                  <code>{step.artifactPath}</code>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </aside>
+    </div>
   );
 }
 
@@ -1146,6 +1602,15 @@ function WarnIcon() {
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8v5" />
       <circle cx="12" cy="16" r="0.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M6 6 18 18" />
+      <path d="M18 6 6 18" />
     </svg>
   );
 }
