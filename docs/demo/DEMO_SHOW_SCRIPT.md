@@ -28,8 +28,8 @@ npm run smoke
 
 Open:
 - Web UI: `http://127.0.0.1:5173`
-- Proof pack folder: `demo/proof-packs/workflow-change/`
 - Fast path script: `docs/demo/DEMO_FAST_PATH_7MIN.md`
+- Markdown artifacts only as fallback/reference
 
 ## What this demo is and is not
 
@@ -73,18 +73,19 @@ Say:
 - “This is the deliberate before-state.”
 - “A single operator can approve directly. No second reviewer is required.”
 
-### 3. Open the Goalrail flow overlay — 1.5 minutes
+### 3. Open the Goalrail artifacts panel — 1.5 minutes
 
 Click:
-- `Goalrail flow`
+- `Goalrail artifacts`
 
 Say:
 - “This is the operating shape we want to talk about.”
 - “Business request, clarification, contract, bounded task plan, inspectable proof, pilot readout.”
 
 Call out:
-- the step titles
-- the artifact paths in the drawer
+- the tab titles
+- the presenter cue
+- the artifact path metadata
 
 ### 4. Switch to Goalrail mode — 1 minute
 
@@ -123,12 +124,13 @@ Say:
 
 Show:
 - audit log entry with actor, from status, to status, owner, reason, timestamp
-- proof sample: `demo/proof-packs/workflow-change/proof-sample.md`
-- readout sample: `demo/proof-packs/workflow-change/readout-sample.md`
+- `Goalrail artifacts` → `Proof`
+- `Current evidence` card
+- `Goalrail artifacts` → `Pilot readout`
 
 Say:
 - “The value is not only the code change.”
-- “The value is that the change ends with inspectable proof and a bounded readout.”
+- “The value is that the change ends with inspectable proof and a bounded readout in the same UI.”
 
 ### 8. Close with CTA — 1 minute
 
@@ -140,8 +142,8 @@ Suggested close:
 
 If any live step becomes noisy:
 1. keep the UI open in baseline or Goalrail mode
-2. use the flow overlay
-3. open the proof sample and readout sample
+2. use the Goalrail artifacts panel
+3. open the proof sample and readout sample only if the UI becomes unusable
 4. keep the message focused on bounded flow, not automation theatrics
 
 ## Presenter notes
@@ -149,4 +151,4 @@ If any live step becomes noisy:
 - Keep the story narrow.
 - Do not improvise new requirements mid-demo.
 - Do not overclaim AI automation.
-- Use the flow overlay and proof artifacts whenever the room needs a clearer frame.
+- Prefer the in-app Goalrail artifacts viewer during the normal path; markdown is fallback only.

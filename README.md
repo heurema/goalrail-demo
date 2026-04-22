@@ -23,10 +23,11 @@ What exists now:
 - demo-ready React/Web UI
 - switchable demo workflow mode: `baseline` or `goalrail`
 - local `manual_review` runtime workflow for the Goalrail slice
+- in-app Goalrail artifact viewer for request, clarification, contract, task plan, proof, and readout
 - shared demo types
 - fake seed data
 - deterministic reset and smoke scripts
-- workflow-change proof pack, proof sample, and readout sample
+- workflow-change proof pack, proof sample, and readout sample as source/reference artifacts
 - presenter docs for a 7-minute and longer demo path
 
 What this repo still does **not** try to be:
@@ -122,7 +123,7 @@ This is the after-state / Goalrail slice.
 - adds `manual_review`
 - blocks direct approval from intake states
 - requires visible reviewer actor, assigned owner, and decision reason for review approval/rejection
-- exposes the workflow change in counts, filters, status chips, audit log, proof, and readout artifacts
+- exposes the workflow change in counts, filters, status chips, audit log, and the in-app Goalrail artifact viewer
 
 Default after `npm run reset`:
 - `workflowMode: baseline`
@@ -142,12 +143,16 @@ npm run dev
 
 ## Demo artifacts
 
+- live demo artifact viewer: open `Goalrail artifacts` in the web UI
 - primary scenario: `workflow-change`
 - proof pack: `demo/proof-packs/workflow-change/`
-- proof sample: `demo/proof-packs/workflow-change/proof-sample.md`
-- readout sample: `demo/proof-packs/workflow-change/readout-sample.md`
+- proof sample: `demo/proof-packs/workflow-change/proof-sample.md` (source/reference fallback)
+- readout sample: `demo/proof-packs/workflow-change/readout-sample.md` (source/reference fallback)
 - fast path: `docs/demo/DEMO_FAST_PATH_7MIN.md`
 - show script: `docs/demo/DEMO_SHOW_SCRIPT.md`
 - session prompts (RU): `docs/demo/DEMO_SESSION_PROMPTS_RU.md`
 - dry-run checklist: `docs/demo/DEMO_DRY_RUN_CHECKLIST.md`
 - Russian presenter notes: `docs/demo/DEMO_PRESENTER_NOTES_RU.md`
+
+Normal golden path for the live demo is UI-only.
+Markdown files remain available as fallback/reference if the UI becomes noisy.
