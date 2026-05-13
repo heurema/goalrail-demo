@@ -1,0 +1,169 @@
+id: workflow-change
+title: Workflow Change
+status: active
+intent:
+  task_summary: Add manual review before a qualified trial request can be approved.
+  actor: TrialOps operator
+  user_visible_goal: Approval requires manual review, owner, reason, reviewer actor, and audit evidence.
+  acceptance_summary: Direct approval from qualified is blocked in the GoalRail path and review evidence is inspectable.
+hidden_acceptance:
+  - id: block-direct-approval
+    description: A qualified request must not move directly to approved in the GoalRail path.
+  - id: require-review-context
+    description: Review approval requires reviewer actor, assigned owner, and decision reason.
+  - id: capture-audit-evidence
+    description: Audit evidence captures actor, previous status, next status, owner, reason, and timestamp.
+baseline_path:
+  summary: Baseline preserves the before-state where a qualified request can be approved directly.
+  failure_modes:
+    - id: direct-approval-possible
+      description: No manual_review transition is required before approval.
+      axis: acceptance
+    - id: weak-audit-context
+      description: Approval can happen without enough owner, reason, and reviewer context.
+      axis: proof_coverage
+goalrail_path:
+  contract_boundary:
+    scope_in:
+      - Add or expose manual_review in the demo workflow.
+      - Block direct approval from intake states in the GoalRail path.
+      - Require reviewer actor, owner, and decision reason before review decision.
+      - Surface manual review in counts, filters, status display, and audit evidence.
+    scope_out:
+      - Real auth or role enforcement.
+      - Notifications.
+      - Policy profiles.
+      - Generic workflow engine behavior.
+    non_goals:
+      - Customer data.
+      - Database migration.
+      - Production governance claim.
+    expected_proofs:
+      - Direct approval is blocked in GoalRail mode.
+      - Manual review state is visible.
+      - Owner and reason are required before review approval.
+      - Audit evidence captures actor, status transition, owner, reason, and timestamp.
+  expected_improvements:
+    - axis: proof_coverage
+      description: GoalRail names and references workflow/audit evidence.
+    - axis: review_burden
+      description: GoalRail reduces inference by giving the reviewer a contract and proof map.
+scope_delta:
+  aligned_changes:
+    - GoalRail path adds manual_review before approval.
+    - GoalRail path requires reviewer actor, owner, and reason.
+    - GoalRail path exposes audit evidence.
+    - Baseline path remains available as the before-state.
+  unexplained_changes:
+    - None in the current reference scenario artifacts.
+  possible_scope_drift:
+    - Real permissions, notifications, policy profiles, or generic workflow engine behavior would exceed this scenario.
+  missing_expected_changes:
+    - None for the deterministic scenario shape.
+evidence_map:
+  present_evidence:
+    - Baseline documents direct approval from qualified.
+    - GoalRail contract states the review boundary.
+    - GoalRail result states manual_review, actor, owner, reason, and audit evidence.
+    - Source proof/readout artifacts document the deterministic demo behavior.
+  missing_evidence:
+    - Real role-based authorization.
+    - Production audit persistence.
+    - Independent reviewer signoff outside the sandbox.
+  weak_evidence:
+    - Reviewer actor is visible but not backed by real auth.
+    - Proof/readout artifacts are local reference artifacts, not production proof.
+  manual_review_evidence:
+    - manual_review state.
+    - Reviewer actor.
+    - Assigned owner.
+    - Decision reason.
+    - Audit trail fields.
+proof_gap_report:
+  soft_verdict: aligned_but_proof_incomplete
+  proof_gaps:
+    - id: baseline-direct-approval
+      severity: high
+      description: Baseline direct approval does not prove review-gated approval.
+      next_required_proof: Show direct approval blocked in GoalRail mode.
+    - id: visible-actor-not-auth
+      severity: medium
+      description: Reviewer actor visibility is not real role enforcement.
+      next_required_proof: Add real permission evidence before claiming role enforcement.
+    - id: sandbox-proof-limit
+      severity: medium
+      description: Sandbox proof does not prove production workflow or audit behavior.
+      next_required_proof: Repeat the same report shape on a private repo case before pilot claims.
+  next_required_proofs:
+    - id: blocked-direct-approval
+      description: Show direct approval blocked in GoalRail mode.
+    - id: manual-review-decision
+      description: Show manual_review to approved requiring reviewer actor, owner, and reason.
+    - id: audit-evidence
+      description: Show audit evidence for actor, status transition, owner, reason, and timestamp.
+    - id: private-repo-repeat
+      description: Repeat the same report shape on a private repo case before real pilot claims.
+delta_axes:
+  acceptance:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail satisfies the hidden manual review requirement in the scenario.
+  scope_adherence:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail constrains the change to one workflow boundary.
+  proof_coverage:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail points to concrete proof/readout evidence.
+  regression_safety:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail keeps deterministic reset/smoke evidence in scope.
+  change_minimality:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail limits the change and names non-goals.
+  review_burden:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail reduces inference by giving the reviewer a contract and proof map.
+  evidence_quality:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail evidence names checks and audit fields.
+  out_of_scope_changes:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail excludes auth, notifications, and generic workflow work.
+  time_to_confidence:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail makes the expected proof visible before review.
+risk_notes:
+  - id: governance-overread
+    description: Users may read deterministic audit evidence as stronger governance than the sandbox proves.
+    reason: The scenario is realistic and inspectable.
+    mitigation: Keep deterministic sandbox disclaimers visible.
+  - id: compliance-confusion
+    description: Review-gated approval can be confused with security or compliance evidence.
+    reason: Owner, reason, and audit language can sound stronger than the demo boundary.
+    mitigation: State that this is workflow evidence, not a security audit.
+residual_risks:
+  - id: no-real-auth
+    description: Real role enforcement is not present.
+    owner_hint: future implementation slice
+    mitigation: Do not claim role enforcement until real permission evidence exists.
+  - id: sandbox-audit-only
+    description: The scenario does not prove durable audit behavior outside the deterministic sandbox.
+    owner_hint: future pilot evaluation
+    mitigation: Repeat the report shape on a private repo or pilot case before external claims.
+references:
+  task: task.md
+  hidden_acceptance: hidden-acceptance.md
+  baseline: baseline.md
+  goalrail_contract: goalrail-contract.md
+  goalrail: goalrail.md
+  rubric: rubric.yaml
+  delta_report: delta-report.md
+  proof_gap_report: proof-gap-report.md

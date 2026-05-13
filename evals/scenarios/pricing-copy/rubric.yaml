@@ -1,0 +1,74 @@
+schema_version: goalrail.eval.rubric.v0
+scenario_id: pricing-copy
+scoring:
+  allowed_values:
+    - pass
+    - partial
+    - fail
+axes:
+  acceptance:
+    baseline:
+      score: partial
+      rationale: The visible CTA copy changes, but hidden acceptance fails because behavior also changes.
+    goalrail:
+      score: pass
+      rationale: The contract keeps acceptance to the CTA label and preservation of existing behavior.
+  scope_adherence:
+    baseline:
+      score: fail
+      rationale: Baseline changes pricing, billing, or provisioning behavior outside the raw request.
+    goalrail:
+      score: pass
+      rationale: Non-goals explicitly exclude billing, pricing rules, provisioning, API behavior, and schema.
+  proof_coverage:
+    baseline:
+      score: fail
+      rationale: No proof shows that billing/API/schema behavior stayed unchanged.
+    goalrail:
+      score: partial
+      rationale: Expected proof is clear, but the scenario remains artifact-only unless a future harness checks it.
+  regression_safety:
+    baseline:
+      score: fail
+      rationale: Behavior drift increases regression risk around billing and provisioning.
+    goalrail:
+      score: partial
+      rationale: Regression expectations are named, but no automated runner is introduced in this task.
+  change_minimality:
+    baseline:
+      score: fail
+      rationale: The baseline changes more than display copy.
+    goalrail:
+      score: pass
+      rationale: The bounded task packet limits the change to one visible label.
+  review_burden:
+    baseline:
+      score: fail
+      rationale: The reviewer must inspect billing, API, and provisioning behavior after discovering drift.
+    goalrail:
+      score: pass
+      rationale: The contract tells the reviewer exactly which surfaces should remain unchanged.
+  evidence_quality:
+    baseline:
+      score: fail
+      rationale: The only clear evidence is the visible copy change.
+    goalrail:
+      score: partial
+      rationale: Evidence requirements are specific but still reference artifacts, not production proof.
+  out_of_scope_changes:
+    baseline:
+      score: fail
+      rationale: Baseline intentionally illustrates out-of-scope billing/provisioning drift.
+    goalrail:
+      score: pass
+      rationale: Out-of-scope surfaces are listed before implementation.
+  time_to_confidence:
+    baseline:
+      score: fail
+      rationale: Confidence drops because the reviewer must audit unrelated systems.
+    goalrail:
+      score: pass
+      rationale: Confidence is faster because the proof gap is narrow and named.
+notes:
+  - Deterministic reference artifact only.
+  - No production proof, benchmark, or statistical superiority claim.

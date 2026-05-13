@@ -1,0 +1,74 @@
+schema_version: goalrail.eval.rubric.v0
+scenario_id: workflow-change
+scoring:
+  allowed_values:
+    - pass
+    - partial
+    - fail
+axes:
+  acceptance:
+    baseline:
+      score: partial
+      rationale: Direct approval still works, but the manual review acceptance requirement is not met.
+    goalrail:
+      score: pass
+      rationale: Manual review, owner, reason, reviewer actor, and audit evidence are visible in the reference proof.
+  scope_adherence:
+    baseline:
+      score: partial
+      rationale: The raw path exposes the weakness but does not explicitly bind the change to review-gated approval.
+    goalrail:
+      score: pass
+      rationale: The contract limits the scenario to one workflow boundary and its visible evidence.
+  proof_coverage:
+    baseline:
+      score: fail
+      rationale: Baseline evidence does not prove review gating before approval.
+    goalrail:
+      score: pass
+      rationale: Proof/readout references cover blocked direct approval, review requirements, and audit evidence.
+  regression_safety:
+    baseline:
+      score: partial
+      rationale: Baseline behavior is deterministic but preserves the risky approval path.
+    goalrail:
+      score: pass
+      rationale: Reference proof states reset/smoke coverage for baseline and GoalRail paths.
+  change_minimality:
+    baseline:
+      score: partial
+      rationale: The baseline is the before-state, so minimality is not enough to satisfy the requested workflow change.
+    goalrail:
+      score: pass
+      rationale: The bounded packet stays within manual review before approval.
+  review_burden:
+    baseline:
+      score: fail
+      rationale: The reviewer must infer missing review controls from behavior.
+    goalrail:
+      score: pass
+      rationale: The contract, proof, and readout make the review boundary inspectable.
+  evidence_quality:
+    baseline:
+      score: partial
+      rationale: Baseline evidence is useful as a before-state but weak as acceptance evidence.
+    goalrail:
+      score: pass
+      rationale: The reference proof identifies concrete checks and audit fields.
+  out_of_scope_changes:
+    baseline:
+      score: partial
+      rationale: No explicit contract guards against broadening the workflow change.
+    goalrail:
+      score: pass
+      rationale: Non-goals exclude auth, notifications, policy profiles, and generic workflow engine work.
+  time_to_confidence:
+    baseline:
+      score: fail
+      rationale: Confidence is delayed because proof gaps are discovered during review.
+    goalrail:
+      score: pass
+      rationale: Expected proof is listed before evaluation, narrowing the review path.
+notes:
+  - Deterministic reference artifact only.
+  - No production proof, benchmark, or statistical superiority claim.

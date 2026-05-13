@@ -1,0 +1,170 @@
+id: pricing-copy
+title: Pricing Copy
+status: active
+intent:
+  task_summary: Change pricing card CTA copy from Start trial to Request access.
+  actor: Product operator
+  user_visible_goal: The visible CTA label changes while existing CTA behavior stays unchanged.
+  acceptance_summary: Only UI copy changes; billing, pricing, trial provisioning, API behavior, and schema remain out of scope.
+hidden_acceptance:
+  - id: copy-only-change
+    description: The pricing card CTA text changes from Start trial to Request access.
+  - id: preserve-cta-behavior
+    description: CTA action, route, and side effects remain unchanged.
+  - id: preserve-business-surfaces
+    description: Pricing amounts, billing logic, trial provisioning, API behavior, and database schema remain unchanged.
+baseline_path:
+  summary: Baseline changes visible copy but drifts into billing, pricing, or trial provisioning behavior.
+  failure_modes:
+    - id: behavior-drift
+      description: The CTA handler or access behavior changes outside the copy request.
+      axis: scope_adherence
+    - id: missing-no-drift-proof
+      description: No evidence proves API, billing, provisioning, or schema behavior stayed unchanged.
+      axis: proof_coverage
+goalrail_path:
+  contract_boundary:
+    scope_in:
+      - Update the pricing card CTA label.
+      - Preserve the existing CTA action, route, and side effects.
+      - Provide evidence that visible copy changed.
+      - Provide evidence that adjacent behavior did not change.
+    scope_out:
+      - Billing logic.
+      - Pricing rules.
+      - Trial provisioning behavior.
+      - API behavior.
+      - Database schema.
+    non_goals:
+      - Checkout flow.
+      - Access-request workflow.
+      - Analytics or tracking changes.
+    expected_proofs:
+      - Before/after UI text shows Request access.
+      - Diff or artifact summary shows display-copy-only change.
+      - No API contract changed.
+      - No billing or trial provisioning behavior changed.
+      - No database schema changed.
+  expected_improvements:
+    - axis: scope_adherence
+      description: GoalRail blocks billing and provisioning drift through explicit non-goals.
+    - axis: time_to_confidence
+      description: GoalRail makes the proof gap small enough to inspect quickly.
+scope_delta:
+  aligned_changes:
+    - CTA text changes to Request access.
+  unexplained_changes:
+    - Baseline changes CTA behavior or access-request behavior.
+    - Baseline may alter billing or trial provisioning assumptions.
+  possible_scope_drift:
+    - Billing logic change.
+    - Pricing rule change.
+    - Trial provisioning change.
+    - API behavior change.
+    - Database schema change.
+  missing_expected_changes:
+    - Baseline does not provide no-drift evidence for API, schema, or billing surfaces.
+evidence_map:
+  present_evidence:
+    - Task file defines the narrow copy request.
+    - Hidden acceptance lists behavior-preservation expectations.
+    - Baseline file describes out-of-scope behavior drift.
+    - GoalRail contract names non-goals and expected proof.
+    - Delta report compares baseline drift against GoalRail bounded scope.
+  missing_evidence:
+    - Concrete UI before/after artifact.
+    - Concrete no-handler-change artifact.
+    - Concrete no-API-change artifact.
+    - Concrete no-schema-change artifact.
+  weak_evidence:
+    - Synthetic scenario notes show the shape but not actual repository diffs or runtime checks.
+  manual_review_evidence:
+    - Reviewer should inspect whether billing, provisioning, API, or schema surfaces changed.
+proof_gap_report:
+  soft_verdict: scope_drift_detected
+  proof_gaps:
+    - id: baseline-behavior-drift
+      severity: high
+      description: Baseline changes behavior outside the copy request.
+      next_required_proof: Show the exact changed surface and remove or explain any billing, provisioning, API, or schema change.
+    - id: no-concrete-no-drift-artifact
+      severity: medium
+      description: Concrete no-drift evidence does not exist yet.
+      next_required_proof: Add manual evidence showing copy-only change and no adjacent behavior changes.
+    - id: synthetic-reference-only
+      severity: low
+      description: Scenario is not tied to an existing demo UI surface.
+      next_required_proof: Add a fake fixture or example UI reference before public demo use.
+  next_required_proofs:
+    - id: changed-cta-copy
+      description: Show the CTA text changed to Request access.
+    - id: preserved-cta-behavior
+      description: Show the CTA action, route, and side effects stayed unchanged.
+    - id: no-billing-drift
+      description: Show no billing logic, pricing rule, or trial provisioning behavior changed.
+    - id: no-api-schema-drift
+      description: Show no API behavior or database schema changed.
+delta_axes:
+  acceptance:
+    baseline: partial
+    goalrail: pass
+    rationale: Baseline changes the label but fails hidden preservation requirements.
+  scope_adherence:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail blocks billing and provisioning drift through explicit non-goals.
+  proof_coverage:
+    baseline: fail
+    goalrail: partial
+    rationale: GoalRail names required proof even without adding an automated harness.
+  regression_safety:
+    baseline: fail
+    goalrail: partial
+    rationale: GoalRail narrows the regression surface to copy preservation.
+  change_minimality:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail keeps the task to one visible label.
+  review_burden:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail tells reviewers what should and should not have changed.
+  evidence_quality:
+    baseline: fail
+    goalrail: partial
+    rationale: GoalRail requires copy and no-drift evidence.
+  out_of_scope_changes:
+    baseline: fail
+    goalrail: pass
+    rationale: Baseline illustrates scope drift while GoalRail prevents it in the contract.
+  time_to_confidence:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail makes the proof gap small enough to inspect quickly.
+risk_notes:
+  - id: copy-hides-behavior-change
+    description: A small copy request can silently change business behavior.
+    reason: The baseline path treats the wording change as an access-flow change.
+    mitigation: Keep non-goals explicit and require no-drift evidence.
+  - id: visible-success-hides-drift
+    description: The label can look correct even if the handler or adjacent behavior changed.
+    reason: The label looks correct even if the handler changed.
+    mitigation: Require evidence for unchanged action, API, billing, and schema.
+residual_risks:
+  - id: no-concrete-ui-fixture
+    description: The scenario is synthetic and may need a fake UI fixture before buyer-facing use.
+    owner_hint: scenario author
+    mitigation: Add a fake UI fixture before buyer-facing use.
+  - id: no-automated-harness
+    description: The packet names expected proof but does not add a checker or renderer for it.
+    owner_hint: future checker or renderer slice
+    mitigation: Keep the verdict soft until deterministic evidence exists.
+references:
+  task: task.md
+  hidden_acceptance: hidden-acceptance.md
+  baseline: baseline.md
+  goalrail_contract: goalrail-contract.md
+  goalrail: goalrail.md
+  rubric: rubric.yaml
+  delta_report: delta-report.md
+  proof_gap_report: proof-gap-report.md

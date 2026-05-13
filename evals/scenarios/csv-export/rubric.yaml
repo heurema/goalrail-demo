@@ -1,0 +1,74 @@
+schema_version: goalrail.eval.rubric.v0
+scenario_id: csv-export
+scoring:
+  allowed_values:
+    - pass
+    - partial
+    - fail
+axes:
+  acceptance:
+    baseline:
+      score: partial
+      rationale: A CSV may be produced, but hidden acceptance for permission, minimization, and filters is unproven.
+    goalrail:
+      score: pass
+      rationale: The contract includes role limits, field minimization, filter preservation, and proof expectations.
+  scope_adherence:
+    baseline:
+      score: partial
+      rationale: The visible feature is added, but boundaries around data access are not explicit.
+    goalrail:
+      score: pass
+      rationale: Non-goals exclude external delivery, broad reporting, schema changes, and sensitive-field export.
+  proof_coverage:
+    baseline:
+      score: fail
+      rationale: Missing proof for unauthorized block, allowed fields, and filter preservation.
+    goalrail:
+      score: pass
+      rationale: Expected proof covers authorized export, unauthorized block, field allowlist, and filters.
+  regression_safety:
+    baseline:
+      score: fail
+      rationale: Permission and data-minimization regressions can pass unnoticed.
+    goalrail:
+      score: partial
+      rationale: Risk-focused proof expectations are named, but this task adds no automated runner.
+  change_minimality:
+    baseline:
+      score: partial
+      rationale: The feature may be small but lacks clear boundaries around data exposure.
+    goalrail:
+      score: pass
+      rationale: The bounded packet limits export behavior to filtered rows and allowed fields.
+  review_burden:
+    baseline:
+      score: fail
+      rationale: The reviewer must manually inspect roles, exported fields, and filters.
+    goalrail:
+      score: pass
+      rationale: The contract gives the reviewer a precise proof checklist.
+  evidence_quality:
+    baseline:
+      score: fail
+      rationale: Producing a CSV is not enough evidence for a data-access change.
+    goalrail:
+      score: pass
+      rationale: Evidence requirements cover security, minimization, and functional behavior.
+  out_of_scope_changes:
+    baseline:
+      score: partial
+      rationale: Broad export or reporting behavior is not explicitly prevented.
+    goalrail:
+      score: pass
+      rationale: External delivery, broad reporting, schema changes, and sensitive exports are excluded.
+  time_to_confidence:
+    baseline:
+      score: fail
+      rationale: Confidence requires broad manual inspection after the fact.
+    goalrail:
+      score: pass
+      rationale: Confidence is faster because hidden risk checks are named upfront.
+notes:
+  - Deterministic reference artifact only.
+  - No production proof, benchmark, or statistical superiority claim.

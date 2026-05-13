@@ -1,0 +1,195 @@
+id: csv-export
+title: CSV Export
+status: active
+intent:
+  task_summary: Add CSV export for trial requests.
+  actor: TrialOps admin or reviewer
+  user_visible_goal: Export filtered trial request rows while preserving permission and data-minimization boundaries.
+  acceptance_summary: Export is limited to admin/reviewer roles, excludes sensitive/internal fields, preserves filters, and names required evidence.
+hidden_acceptance:
+  - id: restrict-export-role
+    description: Only admin and reviewer roles may export CSV.
+  - id: block-unauthorized-export
+    description: Unauthorized users are blocked from export.
+  - id: minimize-export-fields
+    description: CSV excludes sensitive notes, internal audit fields, reviewer-only notes, and hidden risk metadata.
+  - id: preserve-filters
+    description: CSV preserves the currently selected filters.
+baseline_path:
+  summary: Baseline may produce CSV but leaves permission, data-minimization, and filter-preservation proof gaps.
+  failure_modes:
+    - id: permission-unproven
+      description: Export authorization and unauthorized behavior are not proven.
+      axis: proof_coverage
+    - id: data-minimization-unproven
+      description: Sensitive notes or internal audit fields may leak into the export.
+      axis: evidence_quality
+    - id: filters-unproven
+      description: Export may ignore the active filters.
+      axis: regression_safety
+goalrail_path:
+  contract_boundary:
+    scope_in:
+      - Export currently filtered trial request rows as CSV.
+      - Permit export only for admin and reviewer roles.
+      - Block unauthorized export attempts.
+      - Include only approved CSV fields.
+      - Exclude sensitive notes and internal audit fields.
+    scope_out:
+      - External storage.
+      - Email delivery.
+      - Background jobs.
+      - Live auth provider integration.
+      - Production reporting.
+      - Database schema changes.
+    non_goals:
+      - Sensitive-field export.
+      - Internal audit-field export.
+      - Broad reporting workflow.
+    expected_proofs:
+      - Authorized admin or reviewer export succeeds.
+      - Unauthorized export is blocked.
+      - CSV header contains only allowed fields.
+      - CSV rows exclude sensitive notes and internal audit fields.
+      - Exported rows match active filters.
+  expected_improvements:
+    - axis: proof_coverage
+      description: GoalRail names the proof needed for a data-access feature.
+    - axis: review_burden
+      description: GoalRail gives reviewers a concrete checklist for roles, fields, and filters.
+scope_delta:
+  aligned_changes:
+    - Visible CSV export exists in the baseline scenario.
+    - GoalRail contract names roles, allowed fields, blocked unauthorized export, and filter preservation.
+  unexplained_changes:
+    - Baseline does not show whether unauthorized export is blocked.
+    - Baseline does not document allowed fields.
+    - Baseline does not prove sensitive or internal fields are excluded.
+    - Baseline does not prove active filters are preserved.
+  possible_scope_drift:
+    - Exporting sensitive notes.
+    - Exporting internal audit fields.
+    - Ignoring current filters.
+    - Adding external storage, email delivery, or broad reporting behavior.
+  missing_expected_changes:
+    - Unauthorized export proof.
+    - Allowed-field proof.
+    - Data-minimization proof.
+    - Filter-preservation proof.
+evidence_map:
+  present_evidence:
+    - Task file defines CSV export request.
+    - Hidden acceptance captures role, field, and filter constraints.
+    - Baseline file describes the visible feature with missing proof.
+    - GoalRail contract lists allowed roles, allowed fields, non-goals, and expected proofs.
+    - Delta report compares visible feature completion against proof coverage.
+  missing_evidence:
+    - Authorized export artifact.
+    - Unauthorized export blocked artifact.
+    - CSV header or field allowlist artifact.
+    - Field minimization artifact.
+    - Filter-preservation artifact.
+  weak_evidence:
+    - Visible CSV output alone is weak because it does not prove permission or data minimization.
+  manual_review_evidence:
+    - Reviewer should inspect role boundary, field list, sensitive-field exclusion, and filter matching before trusting the export.
+proof_gap_report:
+  soft_verdict: evidence_too_weak
+  proof_gaps:
+    - id: unauthorized-export-unproven
+      severity: high
+      description: Unauthorized export behavior is not proven.
+      next_required_proof: Show unauthorized export blocked.
+    - id: field-minimization-unproven
+      severity: high
+      description: Exported fields are not proven minimal.
+      next_required_proof: Show CSV header and sample rows excluding sensitive notes and internal audit fields.
+    - id: filter-preservation-unproven
+      severity: medium
+      description: Filter preservation is not proven.
+      next_required_proof: Show exported rows match active filters.
+    - id: artifact-only-scenario
+      severity: low
+      description: Scenario remains artifact-only without concrete output examples.
+      next_required_proof: Add manual evidence examples before renderer or parser work.
+  next_required_proofs:
+    - id: authorized-export
+      description: Show authorized export succeeds for admin or reviewer.
+    - id: unauthorized-blocked
+      description: Show unauthorized export is blocked.
+    - id: allowed-fields
+      description: Show CSV fields are allowlisted.
+    - id: sensitive-fields-excluded
+      description: Show sensitive notes and internal audit fields are excluded.
+    - id: filters-preserved
+      description: Show exported rows preserve active filters.
+    - id: no-broad-export-drift
+      description: Show no external storage, email delivery, or broad reporting behavior was introduced.
+delta_axes:
+  acceptance:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail captures hidden permission and minimization requirements.
+  scope_adherence:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail bounds export to allowed roles, fields, and filters.
+  proof_coverage:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail names proof needed for a data-access feature.
+  regression_safety:
+    baseline: fail
+    goalrail: partial
+    rationale: GoalRail exposes regression risks even without adding automation here.
+  change_minimality:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail avoids expanding into reporting, delivery, or schema work.
+  review_burden:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail gives reviewers a concrete checklist.
+  evidence_quality:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail separates visible feature evidence from security and data evidence.
+  out_of_scope_changes:
+    baseline: partial
+    goalrail: pass
+    rationale: GoalRail excludes sensitive-field export and broad reporting drift.
+  time_to_confidence:
+    baseline: fail
+    goalrail: pass
+    rationale: GoalRail reduces investigation by naming hidden acceptance upfront.
+risk_notes:
+  - id: visible-export-hides-auth-risk
+    description: Visible CSV generation can hide authorization failure.
+    reason: A CSV can be produced without proving who is allowed to produce it.
+    mitigation: Require blocked unauthorized export evidence.
+  - id: csv-can-leak-fields
+    description: Broad export implementations can include sensitive notes or internal audit fields.
+    reason: Broad export implementations often serialize too much data.
+    mitigation: Require an explicit field allowlist and sample output evidence.
+  - id: export-can-ignore-filters
+    description: Export can expose more rows than intended if active filters are not preserved.
+    reason: Feature-level proof may focus only on file generation.
+    mitigation: Require filter-preservation evidence.
+residual_risks:
+  - id: no-live-auth
+    description: No live auth integration exists in this scenario.
+    owner_hint: future implementation slice
+    mitigation: Do not claim production authorization until live auth evidence exists.
+  - id: no-concrete-output-artifacts
+    description: Without concrete output artifacts, the packet remains a manual diagnostic reference.
+    owner_hint: future evidence fixture slice
+    mitigation: Add concrete output artifacts before renderer or public-demo use.
+references:
+  task: task.md
+  hidden_acceptance: hidden-acceptance.md
+  baseline: baseline.md
+  goalrail_contract: goalrail-contract.md
+  goalrail: goalrail.md
+  rubric: rubric.yaml
+  delta_report: delta-report.md
+  proof_gap_report: proof-gap-report.md
