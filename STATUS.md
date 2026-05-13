@@ -44,6 +44,7 @@ artifacts
 - Added docs-only brief for future checker validation of renderer-supporting Scenario Packet fields; no checker code or runtime behavior was changed
 - Extended `npm run evals:check` to validate renderer-supporting Scenario Packet fields; no renderer, dependencies, or app/runtime behavior were added
 - Added docs-only Proof Gap Report renderer brief; no renderer code or runtime behavior was changed
+- Added local deterministic Proof Gap Report renderer for Scenario Packet v0; no AI, network, dependencies, or app/runtime behavior was added
 
 ## Next steps
 

@@ -17,6 +17,7 @@
     "smoke": "node scripts/smoke-test.mjs",
     "evals:check": "node scripts/check-proof-gap-scenarios.mjs",
     "evals:check:selftest": "node scripts/check-proof-gap-scenarios-selftest.mjs",
+    "evals:render": "node scripts/render-proof-gap-report.mjs",
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
     "api:build": "npm -w apps/api run build",
     "api:start": "npm -w apps/api run start",

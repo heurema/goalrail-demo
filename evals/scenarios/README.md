@@ -79,6 +79,19 @@ markdown artifacts and `scenario.yaml` packet structure, including
 renderer-supporting packet fields. They do not run app, backend, frontend,
 benchmark, AI, renderer/parser, or runtime behavior.
 
+## Local render
+
+Run:
+
+```bash
+npm run evals:render -- --scenario workflow-change
+```
+
+The renderer creates a draft Markdown Proof Gap Report from `scenario.yaml`.
+It writes to stdout by default and can write to an explicit `--out` path.
+Manual `proof-gap-report.md` files remain source/reference artifacts and are
+not overwritten by default.
+
 ## Rules
 
 - Scenarios are deterministic reference/eval artifacts only.
