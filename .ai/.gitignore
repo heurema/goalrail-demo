@@ -1,0 +1,16 @@
+# Local data — do not commit
+inbox/
+temp/
+logs/
+docker/
+chronicle/
+chronicle.pid
+processed.json
+
+# Generated/managed by glr
+config.yaml
+skills/
+tasks/
+README.md
+
+.DS_Store

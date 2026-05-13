@@ -6,3 +6,13 @@ apps/*/dist/
 
 data/runtime/*.json
 !data/runtime/.gitkeep
+
+# glr — tool-specific configs (do not commit)
+.mcp.json
+.claude/
+.cursor/
+.gemini/
+.chatgpt/
+.serena/
+.agents/
+.DS_Store
