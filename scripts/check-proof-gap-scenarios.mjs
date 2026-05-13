@@ -48,11 +48,35 @@ const scenarioPacketTopLevelKeys = [
   "hidden_acceptance",
   "baseline_path",
   "goalrail_path",
+  "scope_delta",
+  "evidence_map",
   "proof_gap_report",
   "delta_axes",
   "risk_notes",
   "residual_risks",
   "references"
+];
+
+const scenarioPacketScopeDeltaKeys = [
+  "aligned_changes",
+  "unexplained_changes",
+  "possible_scope_drift",
+  "missing_expected_changes"
+];
+
+const scenarioPacketEvidenceMapKeys = [
+  "present_evidence",
+  "missing_evidence",
+  "weak_evidence",
+  "manual_review_evidence"
+];
+
+const scenarioPacketRiskNoteKeys = ["id", "description", "reason", "mitigation"];
+const scenarioPacketResidualRiskKeys = [
+  "id",
+  "description",
+  "owner_hint",
+  "mitigation"
 ];
 
 const scenarioPacketReferences = {
@@ -186,6 +210,25 @@ const getTopLevelSection = (text, key) => {
   return nextTopLevel === -1 ? rest : rest.slice(0, nextTopLevel);
 };
 
+// Scenario Packet v0 validation is intentionally dependency-free and
+// structural. Ruby YAML parsing remains an external validation command; this
+// checker only verifies stable keys that future renderer work needs.
+const getIndentedSection = (text, key, indent) => {
+  const pattern = new RegExp(`^\\s{${indent}}${escapeRegExp(key)}:\\s*$`, "m");
+  const match = pattern.exec(text);
+
+  if (!match) {
+    return "";
+  }
+
+  const start = match.index + match[0].length;
+  const rest = text.slice(start);
+  const nextSibling = rest.search(
+    new RegExp(`\\n\\s{${indent}}[A-Za-z0-9_]+:\\s*(?:.*)?$`, "m")
+  );
+  return nextSibling === -1 ? rest : rest.slice(0, nextSibling);
+};
+
 const normalizeYamlScalar = (value) =>
   value
     .trim()
@@ -210,6 +253,13 @@ const hasScenarioPacketDeltaAxis = (text, axis) => {
   return pattern.test(deltaAxes);
 };
 
+const hasScenarioPacketDeltaAxisField = (text, axis, field) => {
+  const deltaAxes = getTopLevelSection(text, "delta_axes");
+  const axisSection = getIndentedSection(deltaAxes, axis, 2);
+  const pattern = new RegExp(`^\\s{4}${escapeRegExp(field)}:\\s*.+$`, "m");
+  return pattern.test(axisSection);
+};
+
 const hasScenarioPacketReference = (text, key, fileName) => {
   const references = getTopLevelSection(text, "references");
   const pattern = new RegExp(
@@ -217,6 +267,28 @@ const hasScenarioPacketReference = (text, key, fileName) => {
     "m"
   );
   return pattern.test(references);
+};
+
+const hasScenarioPacketSectionKey = (text, sectionName, key) => {
+  const section = getTopLevelSection(text, sectionName);
+  const pattern = new RegExp(`^\\s{2}${escapeRegExp(key)}:\\s*(?:.*)?$`, "m");
+  return pattern.test(section);
+};
+
+const hasScenarioPacketProofGapKey = (text, key) => {
+  const proofGapReport = getTopLevelSection(text, "proof_gap_report");
+  const pattern = new RegExp(`^\\s{2}${escapeRegExp(key)}:\\s*(?:.*)?$`, "m");
+  return pattern.test(proofGapReport);
+};
+
+const hasScenarioPacketListField = (text, sectionName, key) => {
+  const section = getTopLevelSection(text, sectionName);
+  if (key === "id") {
+    return /^\s{2}-\s+id:\s*.+$/m.test(section);
+  }
+
+  const pattern = new RegExp(`^\\s{4}${escapeRegExp(key)}:\\s*.+$`, "m");
+  return pattern.test(section);
 };
 
 const findUnsupportedVerdictForms = (text) => {
@@ -357,6 +429,70 @@ const validateScenario = async (scenarioId, scenarioPath) => {
     for (const axis of rubricAxes) {
       if (!hasScenarioPacketDeltaAxis(scenarioPacket, axis)) {
         addError(errors, "scenario-packet", scenarioPacketPath, `Missing delta_axes.${axis}.`);
+      }
+
+      for (const field of ["baseline", "goalrail", "rationale"]) {
+        if (!hasScenarioPacketDeltaAxisField(scenarioPacket, axis, field)) {
+          addError(
+            errors,
+            "scenario-packet",
+            scenarioPacketPath,
+            `Missing delta_axes.${axis}.${field}.`
+          );
+        }
+      }
+    }
+
+    for (const key of scenarioPacketScopeDeltaKeys) {
+      if (!hasScenarioPacketSectionKey(scenarioPacket, "scope_delta", key)) {
+        addError(
+          errors,
+          "scenario-packet",
+          scenarioPacketPath,
+          `Missing scope_delta.${key}.`
+        );
+      }
+    }
+
+    for (const key of scenarioPacketEvidenceMapKeys) {
+      if (!hasScenarioPacketSectionKey(scenarioPacket, "evidence_map", key)) {
+        addError(
+          errors,
+          "scenario-packet",
+          scenarioPacketPath,
+          `Missing evidence_map.${key}.`
+        );
+      }
+    }
+
+    if (!hasScenarioPacketProofGapKey(scenarioPacket, "next_required_proofs")) {
+      addError(
+        errors,
+        "scenario-packet",
+        scenarioPacketPath,
+        "Missing proof_gap_report.next_required_proofs."
+      );
+    }
+
+    for (const key of scenarioPacketRiskNoteKeys) {
+      if (!hasScenarioPacketListField(scenarioPacket, "risk_notes", key)) {
+        addError(
+          errors,
+          "scenario-packet",
+          scenarioPacketPath,
+          `Missing risk_notes.${key}.`
+        );
+      }
+    }
+
+    for (const key of scenarioPacketResidualRiskKeys) {
+      if (!hasScenarioPacketListField(scenarioPacket, "residual_risks", key)) {
+        addError(
+          errors,
+          "scenario-packet",
+          scenarioPacketPath,
+          `Missing residual_risks.${key}.`
+        );
       }
     }
 

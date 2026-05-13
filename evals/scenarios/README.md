@@ -75,8 +75,9 @@ npm run evals:check:selftest
 
 These are local deterministic scenario-pack checks only. The self-test uses
 temporary invalid fixtures to prove failure modes. `evals:check` validates both
-markdown artifacts and `scenario.yaml` packet structure. They do not run app,
-backend, frontend, benchmark, AI, renderer/parser, or runtime behavior.
+markdown artifacts and `scenario.yaml` packet structure, including
+renderer-supporting packet fields. They do not run app, backend, frontend,
+benchmark, AI, renderer/parser, or runtime behavior.
 
 ## Rules
 

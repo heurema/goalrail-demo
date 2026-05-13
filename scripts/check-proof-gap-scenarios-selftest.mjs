@@ -129,6 +129,74 @@ const cases = [
     }
   },
   {
+    name: "scenario packet missing scope delta fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "scope_delta"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(scenarioPacketPath(scenarioPath), "scope_delta:", "scope_delta_missing:");
+    }
+  },
+  {
+    name: "scenario packet missing evidence map fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "evidence_map"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(scenarioPacketPath(scenarioPath), "evidence_map:", "evidence_map_missing:");
+    }
+  },
+  {
+    name: "scenario packet missing next required proofs fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "proof_gap_report.next_required_proofs"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(
+        scenarioPacketPath(scenarioPath),
+        "  next_required_proofs:",
+        "  next_required_proofs_missing:"
+      );
+    }
+  },
+  {
+    name: "scenario packet missing delta rationale fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "delta_axes.acceptance.rationale"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(scenarioPacketPath(scenarioPath), "    rationale:", "    rationale_missing:");
+    }
+  },
+  {
+    name: "scenario packet missing risk reason fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "risk_notes.reason"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(scenarioPacketPath(scenarioPath), "    reason:", "    reason_missing:");
+    }
+  },
+  {
+    name: "scenario packet missing risk mitigation fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "risk_notes.mitigation"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(scenarioPacketPath(scenarioPath), "    mitigation:", "    mitigation_missing:");
+    }
+  },
+  {
+    name: "scenario packet missing residual owner hint fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "residual_risks.owner_hint"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(scenarioPacketPath(scenarioPath), "    owner_hint:", "    owner_hint_missing:");
+    }
+  },
+  {
+    name: "scenario packet missing residual mitigation fails",
+    expectedExit: 1,
+    expectedOutput: ["[scenario-packet]", "residual_risks.mitigation"],
+    mutate: async (scenarioPath) => {
+      await replaceInFile(scenarioPacketPath(scenarioPath), "    mitigation:", "    mitigation_missing:");
+    }
+  },
+  {
     name: "missing canonical report heading fails",
     expectedExit: 1,
     expectedOutput: ["[report-section]", "Evidence map"],

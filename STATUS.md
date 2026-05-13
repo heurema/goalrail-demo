@@ -42,6 +42,7 @@ artifacts
 - Added docs-only Scenario Packet renderer readiness review with `revise_packets_first` decision; no renderer or runtime behavior was added
 - Revised Scenario Packet v0 and the three scenario packets with renderer-supporting fields; no renderer, checker update, app/runtime behavior, or product integration was added
 - Added docs-only brief for future checker validation of renderer-supporting Scenario Packet fields; no checker code or runtime behavior was changed
+- Extended `npm run evals:check` to validate renderer-supporting Scenario Packet fields; no renderer, dependencies, or app/runtime behavior were added
 
 ## Next steps
 
