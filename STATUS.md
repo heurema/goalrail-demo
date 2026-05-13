@@ -43,6 +43,7 @@ artifacts
 - Revised Scenario Packet v0 and the three scenario packets with renderer-supporting fields; no renderer, checker update, app/runtime behavior, or product integration was added
 - Added docs-only brief for future checker validation of renderer-supporting Scenario Packet fields; no checker code or runtime behavior was changed
 - Extended `npm run evals:check` to validate renderer-supporting Scenario Packet fields; no renderer, dependencies, or app/runtime behavior were added
+- Added docs-only Proof Gap Report renderer brief; no renderer code or runtime behavior was changed
 
 ## Next steps
 
